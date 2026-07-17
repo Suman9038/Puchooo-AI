@@ -178,3 +178,12 @@ pyrightconfig.json
 PRD.md
 TRD.md
 logs/
+
+auth.py 
+create_superuser.py
+.agents/
+skills_index.json
+
+prompt1.py
+
+Frontend_Prompt.md

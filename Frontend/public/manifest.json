@@ -1,0 +1,29 @@
+{
+  "manifest_version": 3,
+  "name": "Puchooo AI",
+  "version": "1.0",
+  "description": "Your AI Study Buddy for YouTube. Understand long videos in seconds.",
+  "icons": {
+    "16": "app-icon.png",
+    "48": "app-icon.png",
+    "128": "app-icon.png"
+  },
+  "action": {
+    "default_popup": "index.html",
+    "default_title": "Puchooo AI",
+    "default_icon": {
+      "16": "app-icon.png",
+      "48": "app-icon.png",
+      "128": "app-icon.png"
+    }
+  },
+  "permissions": [
+    "activeTab",
+    "tabs",
+    "storage"
+  ],
+  "host_permissions": [
+    "https://*.youtube.com/*",
+    "http://localhost:8000/*"
+  ]
+}
