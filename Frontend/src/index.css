@@ -1,0 +1,81 @@
+@import "tailwindcss";
+@plugin "@tailwindcss/typography";
+
+@theme {
+  --color-primary: #7C3AED;
+  --color-background: #fffdf5; /* slightly warmer white */
+  
+  --color-pastel-mint: #4ade80; /* Brighter mint */
+  --color-pastel-peach: #f472b6; /* Hot pink */
+  --color-pastel-yellow: #fde047; /* Bright yellow */
+  --color-pastel-blue: #38bdf8; /* Bright cyan */
+  --color-pastel-lavender: #a78bfa; /* Bright purple */
+
+  --font-heading: 'Fredoka', 'Inter', system-ui, sans-serif;
+  --font-body: 'Nunito', 'Inter', system-ui, sans-serif;
+
+  --shadow-neubrutalism: 4px 4px 0px 0px rgba(0,0,0,1);
+  --shadow-neubrutalism-sm: 2px 2px 0px 0px rgba(0,0,0,1);
+  --shadow-neubrutalism-hover: 8px 8px 0px 0px rgba(0,0,0,1);
+  
+  --border-width-cartoon: 3px;
+  --border-color-cartoon: #000000;
+  
+  --animate-shimmer: shimmer 2s infinite;
+  @keyframes shimmer {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(100%); }
+  }
+}
+
+@layer base {
+  body {
+    background-color: var(--color-background);
+    color: #0f172a;
+    font-family: var(--font-body);
+    overflow-x: hidden;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-heading);
+    font-weight: 700;
+    letter-spacing: -0.02em;
+  }
+}
+
+/* Custom Utilities mapped to modern sleek design */
+@layer utilities {
+  .border-cartoon {
+    border-width: var(--border-width-cartoon);
+    border-color: var(--border-color-cartoon);
+    border-style: solid;
+  }
+  
+  .card-cartoon {
+    background-color: rgba(255, 255, 255, 1);
+    border-radius: 1rem;
+    border-width: var(--border-width-cartoon);
+    border-color: var(--border-color-cartoon);
+    box-shadow: var(--shadow-neubrutalism);
+    transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+  
+  .card-cartoon:hover {
+    transform: translate(-4px, -4px);
+    box-shadow: var(--shadow-neubrutalism-hover);
+  }
+}
+
+/* Lenis Recommended CSS */
+html.lenis, html.lenis body {
+  height: auto;
+}
+.lenis.lenis-smooth {
+  scroll-behavior: auto !important;
+}
+.lenis.lenis-smooth [data-lenis-prevent] {
+  overscroll-behavior: contain;
+}
+.lenis.lenis-stopped {
+  overflow: hidden;
+}
