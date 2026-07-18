@@ -12,6 +12,7 @@ from app.auth.auth_schemas import (
 from app.auth.dependencies import AccessTokenBearer, RefreshTokenBearer, RoleChecker, get_current_user
 from app.auth.auth_service import AuthService
 from app.schemas.mail_schema import ResendVerificationSchema, ResetPasswordSchema, ForgotPasswordSchema
+from app.core.redis import rate_limit_auth
 from app.core.mail import MailService
 
 router = APIRouter(
@@ -26,7 +27,7 @@ admin_role_checker = RoleChecker([UserRole.ADMIN])
 
 
 @router.post("/signup", response_model=UserResponseSchemaWithMessage, status_code=status.HTTP_201_CREATED)
-async def signup(request: UserCreateSchema, db: AsyncSession = Depends(get_db)):
+async def signup(request: UserCreateSchema, db: AsyncSession = Depends(get_db), _: None = Depends(rate_limit_auth)):
     logger.info(f"Attempted signup for user {request.email}")
     new_user = await AuthService.signup(request, UserRole.USER, db)
     return {
@@ -45,14 +46,15 @@ async def signup_admin(
     request: UserCreateSchema, 
     db: AsyncSession = Depends(get_db),
     admin_user = Depends(get_current_user), # Requires user to be logged in
-    _: bool = Depends(admin_role_checker)   # Requires user to have ADMIN role
+    _: bool = Depends(admin_role_checker),   # Requires user to have ADMIN role
+    __: None = Depends(rate_limit_auth)
 ):
     logger.info(f"Admin {admin_user.email} is creating a new admin account for {request.email}")
     return await AuthService.signup(request, UserRole.ADMIN, db)
 
 
 @router.post("/login", response_model=TokenSchema)
-async def login(request: UserLoginSchema, db: AsyncSession = Depends(get_db)):
+async def login(request: UserLoginSchema, db: AsyncSession = Depends(get_db), _: None = Depends(rate_limit_auth)):
     logger.info(f"Attempting login for user {request.email}")
     return await AuthService.login(request, db)
 
@@ -77,17 +79,17 @@ async def logout(token_details: dict = Depends(access_token_bearer)):
 
 
 @router.post("/resend-verification")
-async def resend_verification(request: ResendVerificationSchema, db: AsyncSession = Depends(get_db)):
+async def resend_verification(request: ResendVerificationSchema, db: AsyncSession = Depends(get_db), _: None = Depends(rate_limit_auth)):
     return await AuthService.resend_verification(request.email, db)
 
 
 @router.post("/forgot-password")
-async def forgot_password(request: ForgotPasswordSchema, db: AsyncSession = Depends(get_db)):
+async def forgot_password(request: ForgotPasswordSchema, db: AsyncSession = Depends(get_db), _: None = Depends(rate_limit_auth)):
     return await AuthService.forgot_password(request.email, db)
 
 
 @router.post("/reset-password")
-async def reset_password(request: ResetPasswordSchema, db: AsyncSession = Depends(get_db)):
+async def reset_password(request: ResetPasswordSchema, db: AsyncSession = Depends(get_db), _: None = Depends(rate_limit_auth)):
     return await AuthService.reset_password(request.token, request.new_password, db)
 
 

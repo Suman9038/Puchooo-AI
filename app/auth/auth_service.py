@@ -1,3 +1,4 @@
+import asyncio
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.exc import IntegrityError
 from fastapi import HTTPException, status
@@ -40,7 +41,7 @@ class AuthService:
         
         user_data = request.model_dump()
         new_user = User(**user_data)
-        new_user.password = hash_password(user_data["password"])
+        new_user.password = await asyncio.to_thread(hash_password, user_data["password"])
         new_user.role = role
 
         new_user = await UserRepository.create_user(new_user, db)
@@ -61,7 +62,7 @@ class AuthService:
         if not user:
             raise UserNotExists()
 
-        if not verify_password(request.password, user.password):
+        if not await asyncio.to_thread(verify_password, request.password, user.password):
             raise InvalidCredentials()
 
         if not user.is_verified:
@@ -184,7 +185,7 @@ class AuthService:
             raise UserNotExists()
         PasswordValidator.validate(new_password)
 
-        hashed_pw = hash_password(new_password)
+        hashed_pw = await asyncio.to_thread(hash_password, new_password)
         # Uses the update_password method you created in user_repository
         await UserRepository.update_password(user, hashed_pw, db)
 
@@ -192,11 +193,11 @@ class AuthService:
 
     @staticmethod
     async def change_password(user: User, current_password: str, new_password: str, db: AsyncSession) -> dict:
-        if not verify_password(current_password, user.password):
+        if not await asyncio.to_thread(verify_password, current_password, user.password):
             raise InvalidCredentials()
 
         PasswordValidator.validate(new_password)
-        hashed_pw = hash_password(new_password)
+        hashed_pw = await asyncio.to_thread(hash_password, new_password)
         
         await UserRepository.update_password(user, hashed_pw, db)
 

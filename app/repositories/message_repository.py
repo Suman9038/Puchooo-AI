@@ -60,7 +60,7 @@ class MessageRepository:
             raise
 
 
-    async def get_messages(self, conversation_id: UUID, user_id: UUID, db:AsyncSession):
+    async def get_messages(self, conversation_id: UUID, user_id: UUID, db:AsyncSession, limit: int = 100, offset: int = 0):
         conversation = await self.conversation_repo.get_conversation(
             conversation_id,
             user_id,
@@ -74,6 +74,8 @@ class MessageRepository:
             select(Message)
             .where(Message.conversation_id == conversation_id)
             .order_by(Message.created_at.asc())
+            .limit(limit)
+            .offset(offset)
         )
 
         return result.scalars().all()
