@@ -57,18 +57,34 @@ class QdrantService:
             )
 
         # Embedding Provider selection:
-        # Default: 'ollama' (Local - 100% free, 0 rate limits, unlimited chunks for large transcripts)
-        # Optional: 'google' (Cloud Gemini) or 'hf' (HuggingFace)
-        emb_provider = os.getenv("EMBEDDING_PROVIDER", "ollama").strip().lower()
-        if emb_provider == "google":
+        # Detect cloud environment (Render sets RENDER=true or PORT)
+        is_cloud = bool(os.getenv("RENDER") or os.getenv("PORT"))
+        
+        # In cloud: default to 'fastembed' (100% free, in-process, multilingual, 768-dim, no API quota)
+        # In local: default to 'ollama' (embeddinggemma:300m)
+        default_provider = "fastembed" if is_cloud else "ollama"
+        emb_provider = os.getenv("EMBEDDING_PROVIDER", default_provider).strip().lower()
+
+        if emb_provider == "fastembed":
+            logger.info("Using FastEmbed Multilingual In-Process Embeddings (768-dim, 100% free, 0 rate limits)")
+            self.embedding = GetEmbeddingModels.get_fastembed_models()
+        elif emb_provider == "ollama":
+            # If running in cloud container without Ollama daemon, gracefully use fastembed
+            if is_cloud and not os.getenv("OLLAMA_BASE_URL"):
+                logger.warning("Cloud environment detected without local Ollama daemon. Automatically using FastEmbed Multilingual.")
+                self.embedding = GetEmbeddingModels.get_fastembed_models()
+            else:
+                logger.info("Using Local Ollama embeddings (embeddinggemma:300m) - 100% free with no rate limits")
+                self.embedding = GetEmbeddingModels.get_ollama_embedding_models()
+        elif emb_provider == "google":
             logger.info("Using Google Generative AI embeddings (gemini-embedding-001)")
             self.embedding = GetEmbeddingModels.get_google_embedding_models()
         elif emb_provider == "hf":
             logger.info("Using HuggingFace embeddings")
             self.embedding = GetEmbeddingModels.get_hf_embedding_models()
         else:
-            logger.info("Using Local Ollama embeddings (embeddinggemma:300m) - 100% free with no rate limits")
-            self.embedding = GetEmbeddingModels.get_ollama_embedding_models()
+            logger.info("Using FastEmbed Multilingual In-Process Embeddings (768-dim)")
+            self.embedding = GetEmbeddingModels.get_fastembed_models()
 
         self.collection_name = settings.QDRANT_COLLECTION
 

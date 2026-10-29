@@ -8,14 +8,24 @@ JTI_EXPIRY = settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60
 
 # Cloud Redis (Upstash) vs Local Redis support
 def get_redis_url() -> str:
+    url = None
     for candidate in [
         os.getenv("UPSTASH_REDIS_URL"),
         os.getenv("REDIS_URL"),
         os.getenv("UPSTASH_REDIS_REST_URL"),
     ]:
         if candidate and (candidate.startswith("redis://") or candidate.startswith("rediss://")):
-            return candidate
-    return settings.LOCAL_REDIS_URL
+            url = candidate
+            break
+    if not url:
+        url = settings.LOCAL_REDIS_URL
+
+    # Auto-fix for Celery & Redis TLS: If rediss:// is used, ensure ssl_cert_reqs parameter is present
+    if url.startswith("rediss://") and "ssl_cert_reqs" not in url:
+        separator = "&" if "?" in url else "?"
+        url = f"{url}{separator}ssl_cert_reqs=none"
+
+    return url
 
 redis_url = get_redis_url()
 redis_client = redis.from_url(redis_url, decode_responses=True)
