@@ -2,7 +2,7 @@ from uuid import UUID
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.rag_pipeline.chain import RagChain
 from app.rag_pipeline.vector_store import QdrantService
-from app.rag_pipeline.llm import LLMModels
+from app.rag_pipeline.llm import LLMModels, DynamicModelTracker
 from app.core.logger import logger
 from app.repositories.conversation_repository import ConversationRepository
 from app.repositories.message_repository import MessageRepository
@@ -201,15 +201,16 @@ class RagService:
                 db=db
             )
 
-            chat_history = await self._build_chat_history(conversation_id, user_id, db,verify_ownership=False)
-            rag_chain = (
-                self._build_rag_chain(
-                    conversation.video_id
-                )
-            )
-
+            chat_history = await self._build_chat_history(conversation_id, user_id, db, verify_ownership=False)
             video = await self.video_repo.get_by_video_id(conversation.video_id, db)
             video_title = video.title if video and video.title else "Unknown YouTube Video"
+
+            # Pass the YouTube video ID (e.g. lRArylZCeOs) to match Qdrant chunks metadata
+            rag_chain = (
+                self._build_rag_chain(
+                    video.youtube_video_id
+                )
+            )
 
             response = await rag_chain.ainvoke(
                 {
@@ -239,12 +240,12 @@ class RagService:
             await db.rollback()
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail= f"Unable to generate response {str(e)}"
+                detail=f"Unable to generate response {str(e)}"
             )
 
-    async def ask_question_streaming(self, conversation_id:UUID, user_id:UUID, question:str, db:AsyncSession):
-
-        full_answer= ""
+    async def ask_question_streaming(self, conversation_id: UUID, user_id: UUID, question: str, db: AsyncSession):
+        full_answer = ""
+        model_name = LLMModels.get_model_name()
         
         conversation = await self.get_conversation(
             conversation_id=conversation_id,
@@ -260,23 +261,31 @@ class RagService:
         video = await self.video_repo.get_by_video_id(conversation.video_id, db)
         video_title = video.title if video and video.title else "Unknown YouTube Video"
 
-        chat_history = await self._build_chat_history(conversation_id, user_id, db,verify_ownership=False)
+        chat_history = await self._build_chat_history(conversation_id, user_id, db, verify_ownership=False)
         rag_chain = (
             self._build_rag_chain(
                 video.youtube_video_id
             )
         )
 
+        tracker = DynamicModelTracker()
+        model_name_sent = False
+
         try:
-        # streaming using astream
+            # Streaming using astream with dynamic model callback tracking
             async for chunk in rag_chain.astream(
                 {
                     "input": question,
                     "chat_history": chat_history,
                     "video_title": video_title
-                }
+                },
+                config={"callbacks": [tracker]}
             ):
-                logger.debug(chunk)
+                # Emit the actual responding model as soon as generation starts
+                if not model_name_sent and tracker.active_model:
+                    yield f"data: {json.dumps({'model': tracker.active_model})}\n\n"
+                    model_name_sent = True
+
                 if "answer" in chunk:
                     token = chunk["answer"]
                     if token:
@@ -286,18 +295,28 @@ class RagService:
             yield f"data: {json.dumps({'done': True})}\n\n"
             
         except Exception as e:
+            logger.error(f"Streaming error for conversation {conversation_id}: {e}")
             yield f"data: {json.dumps({'error': str(e)})}\n\n"
             yield f"data: {json.dumps({'done': True})}\n\n"
             return 
             
         finally:
+            # 2. Persist chat history with an isolated, dedicated database session
+            # FastAPI closes the route dependency 'db' when StreamingResponse begins.
+            # Using sessionlocal() guarantees messages are 100% saved without connection errors.
             if full_answer:
-                await self.message_repo.save_messages(
-                    conversation_id=conversation_id,
-                    question=question,
-                    answer=full_answer,
-                    db=db
-                )
+                try:
+                    from app.core.database import sessionlocal
+                    async with sessionlocal() as persist_db:
+                        await self.message_repo.save_messages(
+                            conversation_id=conversation_id,
+                            question=question,
+                            answer=full_answer,
+                            db=persist_db
+                        )
+                        logger.info(f"Streamed messages successfully persisted for conversation={conversation_id}")
+                except Exception as save_err:
+                    logger.error(f"Failed to persist streamed messages for conversation={conversation_id}: {save_err}")
 
 
     def _build_rag_chain(self, video_id):

@@ -50,7 +50,7 @@
     border-color: var(--border-color-cartoon);
     border-style: solid;
   }
-  
+
   .card-cartoon {
     background-color: rgba(255, 255, 255, 1);
     border-radius: 1rem;
@@ -59,10 +59,103 @@
     box-shadow: var(--shadow-neubrutalism);
     transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
   }
-  
+
   .card-cartoon:hover {
     transform: translate(-4px, -4px);
     box-shadow: var(--shadow-neubrutalism-hover);
+  }
+
+  /* Floating Label Animation Styles */
+  .floating-label {
+    position: relative;
+  }
+
+  .floating-label label {
+    position: absolute;
+    left: 16px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #94a3b8;
+    font-weight: 700;
+    font-size: 0.875rem;
+    transition: all 0.3s ease;
+    pointer-events: none;
+  }
+
+  .floating-label input:focus + label,
+  .floating-label input:not(:placeholder-shown) + label,
+  .floating-label textarea:focus + label,
+  .floating-label textarea:not(:placeholder-shown) + label {
+    top: 0;
+    font-size: 0.75rem;
+    color: #475569;
+  }
+
+  /* Password Visibility Toggle Button */
+  .password-toggle-btn {
+    position: absolute;
+    right: 16px;
+    top: 50%;
+    transform: translateY(-50%);
+    padding: 8px;
+    border-radius: 9999px;
+    color: #94a3b8;
+    background: transparent;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    z-index: 10;
+  }
+
+  .password-toggle-btn:hover {
+    color: #1e293b;
+    background: #f1f5f9;
+  }
+
+  /* Consistent Loading Spinner Button */
+  .loading-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+  }
+
+  .loading-btn svg {
+    width: 1rem;
+    height: 1rem;
+  }
+
+  /* Dashboard Empty State */
+  .empty-state-card {
+    grid-column: span-full;
+    padding: 3rem;
+    background: #fde047;
+    border: 3px solid #000;
+    border-radius: 1.5rem;
+    text-align: center;
+    color: #0f172a;
+    font-weight: 900;
+    font-size: 1.25rem;
+    box-shadow: 2px 2px 0px 0px rgba(0,0,0,1);
+    transition: all 0.2s ease;
+    cursor: default;
+  }
+
+  .empty-state-card:hover {
+    transform: translate(-4px, -4px);
+    box-shadow: 8px 8px 0px 0px rgba(0,0,0,1);
+  }
+
+  /* Admin Table Hover */
+  .admin-table-row:hover {
+    background-color: #dcfce7;
+  }
+
+  /* Admin Select Focus */
+  .admin-select-focus {
+    outline: none;
+    border-color: #4ade80;
+    box-shadow: 0 0 0 2px rgba(74, 222, 128, 0.2);
+    transition: all 0.2s ease;
   }
 }
 

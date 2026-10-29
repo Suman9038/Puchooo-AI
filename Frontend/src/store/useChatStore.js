@@ -173,8 +173,39 @@ export const useChatStore = create((set, get) => ({
               try {
                 const data = JSON.parse(dataStr);
                 
+                if (data.model) {
+                  set((state) => {
+                    if (!state.activeConversation) return state;
+                    const msgs = state.activeConversation.messages;
+                    const newMsgs = msgs.map(msg => 
+                      msg.id === aiMessageId ? { ...msg, model: data.model } : msg
+                    );
+                    return {
+                      activeConversation: {
+                        ...state.activeConversation,
+                        messages: newMsgs
+                      }
+                    };
+                  });
+                }
+                
                 if (data.error) {
                   console.error("Stream error:", data.error);
+                  set((state) => {
+                    if (!state.activeConversation) return state;
+                    const msgs = state.activeConversation.messages;
+                    const newMsgs = msgs.map(msg => 
+                      msg.id === aiMessageId 
+                        ? { ...msg, content: "Unable to generate response. Please check video status and try again." } 
+                        : msg
+                    );
+                    return {
+                      activeConversation: {
+                        ...state.activeConversation,
+                        messages: newMsgs
+                      }
+                    };
+                  });
                   break;
                 }
                 

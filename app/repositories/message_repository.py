@@ -5,7 +5,6 @@ from sqlalchemy import select
 from app.models.models import Message, MessageRole
 from app.core.logger import logger
 
-
 class MessageRepository:
     def __init__(self, conversation_repo=None):
         self.conversation_repo= conversation_repo or ConversationRepository()
@@ -58,9 +57,8 @@ class MessageRepository:
             await db.rollback()
             logger.exception(f"Failed to save messages: {e}")
             raise
-
-
-    async def get_messages(self, conversation_id: UUID, user_id: UUID, db:AsyncSession, limit: int = 100, offset: int = 0):
+    
+    async def get_messages(self, conversation_id: UUID, user_id: UUID, db:AsyncSession):
         conversation = await self.conversation_repo.get_conversation(
             conversation_id,
             user_id,
@@ -74,12 +72,10 @@ class MessageRepository:
             select(Message)
             .where(Message.conversation_id == conversation_id)
             .order_by(Message.created_at.asc())
-            .limit(limit)
-            .offset(offset)
         )
 
         return result.scalars().all()
-
+    
     
     async def get_recent_messages(
         self,
@@ -104,4 +100,3 @@ class MessageRepository:
         )
 
         return result.scalars().all()
-

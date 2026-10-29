@@ -213,7 +213,7 @@ export default function AuthPage() {
                           required={!isLogin}
                           value={formData.first_name}
                           onChange={handleChange}
-                          className="w-full px-4 py-3 rounded-2xl border-cartoon shadow-neubrutalism-sm focus:border-slate-900 focus:shadow-neubrutalism outline-none transition-all bg-white font-bold"
+                          className="w-full px-4 py-3 rounded-2xl border-cartoon shadow-neubrutalism-sm focus:border-slate-900 focus:shadow-neubrutalism outline-none transition-all bg-white font-bold placeholder-slate-400"
                           placeholder="John"
                         />
                       </div>

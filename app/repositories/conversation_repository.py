@@ -14,12 +14,12 @@ class ConversationRepository:
         await db.refresh(new_conversation)
         return new_conversation
 
-    async def get_user_conversation(self, user_id: UUID, db: AsyncSession, video_id: UUID | None = None, limit: int = 50, offset: int = 0):
+    async def get_user_conversation(self, user_id: UUID, db: AsyncSession, video_id: UUID | None = None):
         query = select(Conversation).options(selectinload(Conversation.video)).where(Conversation.user_id == user_id)
         if video_id:
             query = query.where(Conversation.video_id == video_id)
         
-        query = query.order_by(Conversation.created_at.desc()).limit(limit).offset(offset)
+        query = query.order_by(Conversation.created_at.desc())
         result = await db.execute(query)
         return result.scalars().all()
 
@@ -94,5 +94,3 @@ class ConversationRepository:
         await db.commit()
 
         return True
-    
-    

@@ -37,7 +37,7 @@ class User(Base):
     "Conversation",
     back_populates="user",
     cascade="all, delete-orphan",
-    lazy="noload"
+    lazy="selectin"
     )
 
     def __repr__(self):
@@ -63,7 +63,7 @@ class Video(Base):
         "Conversation",
         back_populates="video",
         cascade="all, delete-orphan",
-        lazy="noload"
+        lazy="selectin"
     )
 
 
@@ -96,7 +96,7 @@ class Conversation(Base):
     
     video = relationship("Video", back_populates="conversations")
 
-    messages= relationship("Message", back_populates="conversation", cascade="all, delete-orphan",lazy="noload",passive_deletes=False)
+    messages= relationship("Message", back_populates="conversation", cascade="all, delete-orphan",lazy="selectin",passive_deletes=False)
 
     # Composite index for the most common query pattern
     __table_args__ = (

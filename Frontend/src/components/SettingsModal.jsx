@@ -1,21 +1,23 @@
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, LockKeyhole, User, CheckCircle2 } from "lucide-react";
+import { X } from "lucide-react";
 import { useAuthStore } from "../store/useAuthStore";
 
 export default function SettingsModal({ isOpen, onClose }) {
   const [activeTab, setActiveTab] = useState("profile"); // 'profile' or 'security'
-  
+
   // Profile State
   const { user, changePassword, updateProfile } = useAuthStore();
   const [username, setUsername] = useState(user?.username || "");
   const [firstName, setFirstName] = useState(user?.first_name || "");
   const [lastName, setLastName] = useState(user?.last_name || "");
-  
+
   // Security State
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
-  
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+
   // Global State
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -40,7 +42,7 @@ export default function SettingsModal({ isOpen, onClose }) {
   const handleProfileSubmit = async (e) => {
     e.preventDefault();
     if (!username || !firstName || !lastName) return;
-    
+
     setIsLoading(true);
     setError(null);
     try {
@@ -63,7 +65,7 @@ export default function SettingsModal({ isOpen, onClose }) {
   const handleSecuritySubmit = async (e) => {
     e.preventDefault();
     if (!isPasswordValid || !currentPassword) return;
-    
+
     setIsLoading(true);
     setError(null);
     try {
@@ -114,18 +116,18 @@ export default function SettingsModal({ isOpen, onClose }) {
               <div className="flex gap-4">
                 <button
                   onClick={() => { setActiveTab("profile"); setError(null); }}
-                  className={`pb-4 px-2 font-bold text-lg transition-colors border-b-4 relative top-[2px] ${activeTab === "profile" ? "border-slate-800 text-slate-800" : "border-transparent text-slate-400 hover:text-slate-600"}`}
+                  className={`pb-4 px-2 font-bold text-lg cursor-pointer transition-colors border-b-4 relative top-[2px] ${activeTab === "profile" ? "border-slate-800 text-slate-800" : "border-transparent text-slate-400 hover:text-slate-600"}`}
                 >
                   Profile
                 </button>
                 <button
                   onClick={() => { setActiveTab("security"); setError(null); }}
-                  className={`pb-4 px-2 font-bold text-lg transition-colors border-b-4 relative top-[2px] ${activeTab === "security" ? "border-slate-800 text-slate-800" : "border-transparent text-slate-400 hover:text-slate-600"}`}
+                  className={`pb-4 px-2 font-bold text-lg cursor-pointer transition-colors border-b-4 relative top-[2px] ${activeTab === "security" ? "border-slate-800 text-slate-800" : "border-transparent text-slate-400 hover:text-slate-600"}`}
                 >
                   Security
                 </button>
               </div>
-              <button 
+              <button
                 onClick={handleClose}
                 className="absolute top-4 right-4 p-2 bg-slate-200 hover:bg-slate-300 rounded-full transition-colors z-10"
               >
@@ -145,7 +147,7 @@ export default function SettingsModal({ isOpen, onClose }) {
               ) : (
                 <>
                   {error && (
-                    <motion.div 
+                    <motion.div
                       initial={{ opacity: 0, y: -10 }}
                       animate={{ opacity: 1, y: 0 }}
                       className="p-3 mb-4 rounded-xl border-2 font-semibold text-sm bg-red-100 border-red-400 text-red-800"
@@ -155,132 +157,132 @@ export default function SettingsModal({ isOpen, onClose }) {
                   )}
 
                   {activeTab === "profile" ? (
-                    <motion.form 
+                    <motion.form
                       key="profile-form"
                       initial={{ opacity: 0, x: -20 }}
                       animate={{ opacity: 1, x: 0 }}
                       exit={{ opacity: 0, x: 20 }}
-                      onSubmit={handleProfileSubmit} 
+                      onSubmit={handleProfileSubmit}
                       className="flex flex-col gap-4"
                     >
                       <div className="flex gap-4">
-                        <div className="flex flex-col gap-1.5 flex-1">
-                          <label className="text-sm font-bold text-slate-700 ml-2">First Name</label>
+                        <div className="floating-label relative">
                           <input
                             type="text"
                             required
                             value={firstName}
                             onChange={(e) => setFirstName(e.target.value)}
-                            className="w-full px-4 py-3 rounded-2xl border-2 border-slate-300 focus:border-slate-800 focus:ring-0 outline-none transition-colors bg-slate-50 font-medium"
-                            placeholder="John"
+                            className="w-full px-4 py-3 rounded-2xl border-2 border-slate-300 focus:border-slate-800 focus:ring-0 outline-none transition-colors bg-slate-50 font-medium placeholder-shown:text-slate-400"
+                            placeholder=" "
                           />
+                          <label className="text-slate-500">First Name</label>
                         </div>
-                        <div className="flex flex-col gap-1.5 flex-1">
-                          <label className="text-sm font-bold text-slate-700 ml-2">Last Name</label>
+                      </div>
+
+                      <div className="flex gap-4">
+                        <div className="floating-label relative">
                           <input
                             type="text"
                             required
                             value={lastName}
                             onChange={(e) => setLastName(e.target.value)}
-                            className="w-full px-4 py-3 rounded-2xl border-2 border-slate-300 focus:border-slate-800 focus:ring-0 outline-none transition-colors bg-slate-50 font-medium"
-                            placeholder="Doe"
+                            className="w-full px-4 py-3 rounded-2xl border-2 border-slate-300 focus:border-slate-800 focus:ring-0 outline-none transition-colors bg-slate-50 font-medium placeholder-shown:text-slate-400"
+                            placeholder=" "
                           />
+                          <label className="text-slate-500">Last Name</label>
                         </div>
                       </div>
 
-                      <div className="flex flex-col gap-1.5">
-                        <label className="text-sm font-bold text-slate-700 ml-2">Username</label>
+                      <div className="floating-label relative">
                         <input
                           type="text"
                           required
                           value={username}
                           onChange={(e) => setUsername(e.target.value)}
-                          className="w-full px-4 py-3 rounded-2xl border-2 border-slate-300 focus:border-slate-800 focus:ring-0 outline-none transition-colors bg-slate-50 font-medium"
-                          placeholder="johndoe123"
+                          className="w-full px-4 py-3 rounded-2xl border-2 border-slate-300 focus:border-slate-800 focus:ring-0 outline-none transition-colors bg-slate-50 font-medium placeholder-shown:text-slate-400"
+                          placeholder=" "
                         />
+                        <label className="text-slate-500">Username</label>
                       </div>
-
-                      <motion.button
-                        type="submit"
-                        disabled={isLoading || !username || !firstName || !lastName}
-                        whileHover={{ scale: 1.02 }}
-                        whileTap={{ scale: 0.95 }}
-                        className="w-full py-3.5 mt-2 bg-pastel-mint text-slate-800 rounded-2xl border-cartoon shadow-neubrutalism-sm font-bold hover:bg-[#86efac] transition-colors disabled:opacity-70 disabled:hover:scale-100"
-                      >
-                        {isLoading ? "Saving..." : "Save Profile"}
-                      </motion.button>
                     </motion.form>
                   ) : (
-                    <motion.form 
+                    <motion.form
                       key="security-form"
                       initial={{ opacity: 0, x: 20 }}
                       animate={{ opacity: 1, x: 0 }}
                       exit={{ opacity: 0, x: -20 }}
-                      onSubmit={handleSecuritySubmit} 
+                      onSubmit={handleSecuritySubmit}
                       className="flex flex-col gap-4"
                     >
                       <div className="flex flex-col gap-1.5">
                         <label className="text-sm font-bold text-slate-700 ml-2">Current Password</label>
-                        <input
-                          type="password"
-                          required
-                          value={currentPassword}
-                          onChange={(e) => setCurrentPassword(e.target.value)}
-                          className="w-full px-4 py-3 rounded-2xl border-2 border-slate-300 focus:border-slate-800 focus:ring-0 outline-none transition-colors bg-slate-50 font-medium"
-                          placeholder="••••••••"
-                        />
+                        <div className="floating-label relative">
+                          <input
+                            type={showCurrentPassword ? "text" : "password"}
+                            required
+                            value={currentPassword}
+                            onChange={(e) => setCurrentPassword(e.target.value)}
+                            className="w-full px-4 py-3 pr-12 rounded-2xl border-2 border-slate-300 focus:border-slate-800 focus:ring-0 outline-none transition-colors bg-slate-50 font-medium placeholder-shown:text-slate-400"
+                            placeholder=" "
+                          />
+                          <label className="text-slate-500">Current Password</label>
+                          <button
+                            type="button"
+                            onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                            className="password-toggle-btn"
+                            aria-label={showCurrentPassword ? "Hide password" : "Show password"}
+                          >
+                            {showCurrentPassword ? "Hide" : "Show"}
+                          </button>
+                        </div>
                       </div>
 
                       <div className="flex flex-col gap-1.5">
                         <label className="text-sm font-bold text-slate-700 ml-2">New Password</label>
-                        <input
-                          type="password"
-                          required
-                          value={newPassword}
-                          onChange={(e) => setNewPassword(e.target.value)}
-                          className="w-full px-4 py-3 rounded-2xl border-2 border-slate-300 focus:border-slate-800 focus:ring-0 outline-none transition-colors bg-slate-50 font-medium"
-                          placeholder="••••••••"
-                        />
-                      </div>
-
-                      {newPassword.length > 0 && (
-                        <div className="p-3 bg-slate-50 rounded-2xl border-2 border-slate-200 text-xs flex flex-col gap-1.5 transition-all">
-                          <div className="flex items-center gap-1.5 font-bold">
-                            <span className={isMinLength ? "text-green-600" : "text-slate-400"}>
-                              {isMinLength ? "✓" : "○"} At least 8 characters
-                            </span>
-                          </div>
-                          <div className="flex items-center gap-1.5 font-bold">
-                            <span className={hasUppercase ? "text-green-600" : "text-slate-400"}>
-                              {hasUppercase ? "✓" : "○"} One uppercase letter
-                            </span>
-                          </div>
-                          <div className="flex items-center gap-1.5 font-bold">
-                            <span className={hasLowercase ? "text-green-600" : "text-slate-400"}>
-                              {hasLowercase ? "✓" : "○"} One lowercase letter
-                            </span>
-                          </div>
-                          <div className="flex items-center gap-1.5 font-bold">
-                            <span className={hasNumber ? "text-green-600" : "text-slate-400"}>
-                              {hasNumber ? "✓" : "○"} One number
-                            </span>
-                          </div>
-                          <div className="flex items-center gap-1.5 font-bold">
-                            <span className={hasSpecial ? "text-green-600" : "text-slate-400"}>
-                              {hasSpecial ? "✓" : "○"} One special character
-                            </span>
-                          </div>
+                        <div className="floating-label relative">
+                          <input
+                            type={showNewPassword ? "text" : "password"}
+                            required
+                            value={newPassword}
+                            onChange={(e) => setNewPassword(e.target.value)}
+                            className="w-full px-4 py-3 pr-12 rounded-2xl border-2 border-slate-300 focus:border-slate-800 focus:ring-0 outline-none transition-colors bg-slate-50 font-medium placeholder-shown:text-slate-400"
+                            placeholder=" "
+                          />
+                          <label className="text-slate-500">New Password</label>
+                          <button
+                            type="button"
+                            onClick={() => setShowNewPassword(!showNewPassword)}
+                            className="password-toggle-btn"
+                            aria-label={showNewPassword ? "Hide password" : "Show password"}
+                          >
+                            {showNewPassword ? "Hide" : "Show"}
+                          </button>
                         </div>
-                      )}
+                      </div>
 
                       <motion.button
                         type="submit"
                         disabled={isLoading || !isPasswordValid || !currentPassword}
                         whileHover={{ scale: 1.02 }}
                         whileTap={{ scale: 0.95 }}
-                        className="w-full py-3.5 mt-2 bg-slate-800 rounded-2xl border-cartoon shadow-neubrutalism-sm font-bold text-white hover:bg-slate-700 transition-colors disabled:opacity-70 disabled:hover:scale-100"
+                        className="w-full py-3.5 mt-2 bg-slate-800 rounded-2xl border-cartoon shadow-neubrutalism-sm font-bold text-white hover:bg-slate-700 transition-colors disabled:opacity-70 disabled:hover:scale-100 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                       >
-                        {isLoading ? "Saving..." : "Update Password"}
+                        {isLoading ? (
+                          <>
+                            <svg
+                              className="animate-spin h-5 w-5 text-white"
+                              xmlns="http://www.w3.org/2000/svg"
+                              fill="none"
+                              viewBox="0 0 24 24"
+                            >
+                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.747z" />
+                            </svg>
+                            "Saving..."
+                          </>
+                        ) : (
+                          "Update Password"
+                        )}
                       </motion.button>
                     </motion.form>
                   )}

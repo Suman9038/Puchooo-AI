@@ -97,7 +97,8 @@ async def reset_password(request: ResetPasswordSchema, db: AsyncSession = Depend
 async def change_password(
     request: ChangePasswordSchema, 
     db: AsyncSession = Depends(get_db),
-    user = Depends(get_current_user)
+    user = Depends(get_current_user),
+    _: None = Depends(rate_limit_auth)
 ):
     return await AuthService.change_password(user, request.current_password, request.new_password, db)
 
@@ -111,7 +112,7 @@ async def update_profile(
     return await AuthService.update_profile(user, request.model_dump(exclude_unset=True), db)
 
 
-@router.get("/test-email")
+@router.post("/test-email")
 async def test_email():
     await MailService.send_mail(
         to_email="reversed713@gmail.com",

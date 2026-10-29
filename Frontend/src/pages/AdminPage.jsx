@@ -209,7 +209,7 @@ export default function AdminPage() {
                     </tr>
                   ) : (
                     users.map((user) => (
-                      <tr key={user.id} className="hover:bg-slate-55/30 transition-colors">
+                      <tr key={`user-${user.id}`} className="admin-table-row hover:bg-pastel-mint/20 transition-all">
                         <td className="p-4">
                           <div className="flex flex-col">
                             <span className="font-bold text-slate-800">
@@ -245,7 +245,7 @@ export default function AdminPage() {
                           <button
                             disabled={processingId === user.id}
                             onClick={() => handleDeleteUser(user.id)}
-                            className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all"
+                            className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all cursor-pointer"
                             title="Delete User"
                           >
                             {processingId === user.id ? <Loader2 className="animate-spin" size={16} /> : <Trash2 size={16} />}
@@ -284,7 +284,7 @@ export default function AdminPage() {
                     </tr>
                   ) : (
                     videos.map((vid) => (
-                      <tr key={vid.id} className="hover:bg-slate-55/30 transition-colors">
+                      <tr key={`video-${vid.id}`} className="admin-table-row hover:bg-pastel-mint/20 transition-all">
                         <td className="p-4">
                           <div className="flex items-center gap-3 max-w-sm">
                             <img 
@@ -332,7 +332,7 @@ export default function AdminPage() {
                             <button
                               disabled={processingId === vid.id}
                               onClick={() => handleReprocessVideo(vid.id)}
-                              className="p-2 text-slate-400 hover:text-green-600 hover:bg-green-50 rounded-xl transition-all"
+                              className="p-2 text-slate-400 hover:text-green-600 hover:bg-green-50 rounded-xl transition-all cursor-pointer"
                               title="Reprocess/Re-index Video"
                             >
                               {processingId === vid.id ? <Loader2 className="animate-spin" size={16} /> : <RefreshCw size={16} />}
@@ -340,7 +340,7 @@ export default function AdminPage() {
                             <button
                               disabled={processingId === vid.id}
                               onClick={() => handleDeleteVideo(vid.id)}
-                              className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all"
+                              className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all cursor-pointer"
                               title="Delete/Purge Video"
                             >
                               {processingId === vid.id ? <Loader2 className="animate-spin" size={16} /> : <Trash2 size={16} />}

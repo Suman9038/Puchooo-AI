@@ -136,7 +136,12 @@ async def ask_question_stream(
             question=request.question,
             db=db
         ),
-        media_type="text/event-stream"
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache, no-transform",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no"
+        }
     )
 
 @router.delete("/conversations/{conversation_id}", status_code=status.HTTP_200_OK)

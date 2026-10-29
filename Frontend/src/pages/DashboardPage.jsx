@@ -151,7 +151,7 @@ export default function DashboardPage() {
             <button
               type="submit"
               disabled={isProcessing}
-              className="w-full sm:w-auto mt-4 sm:mt-0 sm:absolute sm:right-3 sm:top-2 sm:bottom-2 bg-pastel-mint border-cartoon text-slate-900 font-black py-4 px-8 rounded-2xl sm:rounded-full shadow-neubrutalism hover:bg-pastel-yellow hover:-translate-y-1 hover:shadow-neubrutalism-hover active:translate-y-0 active:shadow-neubrutalism-sm transition-all disabled:opacity-70 flex justify-center items-center gap-2 text-base sm:text-lg"
+              className="w-full sm:w-auto mt-4 sm:mt-0 sm:absolute sm:right-3 sm:top-2 sm:bottom-2 bg-pastel-mint border-cartoon text-slate-900 font-black py-4 px-8 rounded-2xl sm:rounded-full shadow-neubrutalism hover:bg-pastel-yellow hover:-translate-y-1 hover:shadow-neubrutalism-hover active:translate-y-0 active:shadow-neubrutalism-sm transition-all disabled:opacity-70 disabled:cursor-not-allowed flex justify-center items-center gap-2 text-base sm:text-lg"
             >
               {(isProcessing && activeProcessUrl === youtubeUrl) ? <Loader2 className="animate-spin sm:w-6 sm:h-6" size={20} /> : "Process"}
               <ArrowRight size={20} strokeWidth={3} />
@@ -179,7 +179,7 @@ export default function DashboardPage() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
               {isFetchingVideos ? (
                 Array.from({ length: 4 }).map((_, idx) => (
-                  <motion.div 
+                  <motion.div
                     key={`skeleton-${idx}`}
                     variants={itemVariants}
                     className="card-cartoon flex flex-col p-4 gap-4 bg-white opacity-90"
@@ -187,7 +187,7 @@ export default function DashboardPage() {
                     <div className="w-full h-48 bg-slate-200 border-cartoon rounded-xl overflow-hidden relative">
                       <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/60 to-transparent animate-shimmer" />
                     </div>
-                    
+
                     <div className="flex flex-col flex-grow justify-between gap-6 px-2 pb-2">
                       <div className="flex flex-col gap-2">
                         <div className="h-6 bg-slate-200 rounded-md w-3/4 relative overflow-hidden">
@@ -197,7 +197,7 @@ export default function DashboardPage() {
                            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/60 to-transparent animate-shimmer" />
                         </div>
                       </div>
-                      
+
                       <div className="w-full h-14 bg-slate-200 border-cartoon rounded-xl relative overflow-hidden">
                           <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/60 to-transparent animate-shimmer" />
                       </div>
@@ -205,8 +205,14 @@ export default function DashboardPage() {
                   </motion.div>
                 ))
               ) : (!myVideos || myVideos.length === 0) ? (
-                <div className="col-span-full p-12 bg-pastel-yellow border-cartoon rounded-3xl text-center text-slate-900 font-black text-xl shadow-neubrutalism-sm">
-                  No videos processed yet. Paste a YouTube link above to get started!
+                <div className="empty-state-card">
+                  <div className="flex flex-col items-center gap-4">
+                    <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center border-cartoon shadow-neubrutalism-sm">
+                      <PlaySquare size={32} className="text-slate-800" />
+                    </div>
+                    <span>No videos processed yet</span>
+                    <span className="text-sm font-medium">Paste a YouTube link above to get started!</span>
+                  </div>
                 </div>
               ) : (
                 myVideos.map((video) => (

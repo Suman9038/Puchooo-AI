@@ -2,9 +2,87 @@ import React, { useEffect, useState, useRef } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { useChatStore } from "../store/useChatStore";
 import { motion, AnimatePresence } from "framer-motion";
-import { Send, ArrowLeft, Loader2, Bot, User, MessageSquare, Trash2, AlertTriangle } from "lucide-react";
+import { Send, ArrowLeft, Loader2, Bot, User, MessageSquare, Trash2, AlertTriangle, Cpu, Play, Lightbulb } from "lucide-react";
 import { cn, isExtension } from "../lib/utils";
 import ReactMarkdown from "react-markdown";
+
+/**
+ * Extracts timestamp in seconds from any URL or string.
+ * Supports:
+ *  - URL parameters: t=125, t=125s, start=125, t=1h2m3s, t=2m15s
+ *  - String patterns: 02:05, 1:02:05, [02:05], 125s, etc.
+ */
+const extractTimestampFromUrl = (url) => {
+  if (!url) return null;
+  const match = url.match(/[?&#](?:t|start)=([0-9hms]+)/i);
+  if (match) {
+    const val = match[1];
+    let total = 0;
+    if (/[hms]/i.test(val)) {
+      const h = val.match(/(\d+)h/i);
+      const m = val.match(/(\d+)m/i);
+      const s = val.match(/(\d+)s/i);
+      if (h) total += parseInt(h[1], 10) * 3600;
+      if (m) total += parseInt(m[1], 10) * 60;
+      if (s) total += parseInt(s[1], 10);
+      return total;
+    }
+    const num = parseInt(val.replace(/\D/g, ""), 10);
+    return isNaN(num) ? null : num;
+  }
+  return null;
+};
+
+const extractTimestampFromText = (text) => {
+  if (!text) return null;
+  const str = String(text).trim();
+  const timeMatch = str.match(/(?:(\d{1,2}):)?(\d{1,2}):(\d{2})/);
+  if (timeMatch) {
+    const hours = timeMatch[1] ? parseInt(timeMatch[1], 10) : 0;
+    const minutes = parseInt(timeMatch[2], 10);
+    const seconds = parseInt(timeMatch[3], 10);
+    return hours * 3600 + minutes * 60 + seconds;
+  }
+  const secMatch = str.match(/(\d+(?:\.\d+)?)s/i);
+  if (secMatch) {
+    return Math.floor(parseFloat(secMatch[1]));
+  }
+  return null;
+};
+
+/**
+ * Converts timestamps in LLM text into clickable links if not already wrapped in markdown links.
+ */
+const processTimestamps = (text, videoId) => {
+  if (!text) return "";
+  const vid = videoId || "";
+  
+  // 1. Match [HH:MM:SS] or [MM:SS] NOT followed by (
+  let result = text.replace(
+    /\[((?:(\d{1,2}):)?(\d{1,2}):(\d{2}))\](?!\()/g,
+    (match, time, h, m, s) => {
+      const hours = h ? parseInt(h, 10) : 0;
+      const minutes = parseInt(m, 10);
+      const seconds = parseInt(s, 10);
+      const totalSeconds = hours * 3600 + minutes * 60 + seconds;
+      return `[${time}](https://www.youtube.com/watch?v=${vid}&t=${totalSeconds}s)`;
+    }
+  );
+
+  // 2. Match [125s] or [125.0s] NOT followed by (
+  result = result.replace(
+    /\[(\d+(?:\.\d+)?)s\](?!\()/g,
+    (match, secStr) => {
+      const totalSeconds = Math.floor(parseFloat(secStr));
+      const mins = Math.floor(totalSeconds / 60);
+      const secs = totalSeconds % 60;
+      const formatted = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+      return `[${formatted}](https://www.youtube.com/watch?v=${vid}&t=${totalSeconds}s)`;
+    }
+  );
+
+  return result;
+};
 
 export default function ChatPage() {
   const { id } = useParams();
@@ -14,6 +92,50 @@ export default function ChatPage() {
   const [isCreatingNew, setIsCreatingNew] = useState(false);
   const [showNewChatModal, setShowNewChatModal] = useState(false);
   const messagesEndRef = useRef(null);
+  const [seekTime, setSeekTime] = useState(null);
+  const [activeTimestampBadge, setActiveTimestampBadge] = useState(null);
+  const iframeRef = useRef(null);
+
+  const handleSeek = (seconds, label = null) => {
+    setSeekTime(seconds);
+    if (label) {
+      setActiveTimestampBadge(label);
+    } else {
+      const m = Math.floor(seconds / 60);
+      const s = seconds % 60;
+      setActiveTimestampBadge(`${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`);
+    }
+
+    // Send postMessage command to YouTube iframe to seek & play smoothly
+    const iframe = iframeRef.current;
+    if (iframe && iframe.contentWindow) {
+      try {
+        iframe.contentWindow.postMessage(
+          JSON.stringify({
+            event: "command",
+            func: "seekTo",
+            args: [seconds, true]
+          }),
+          "*"
+        );
+        iframe.contentWindow.postMessage(
+          JSON.stringify({
+            event: "command",
+            func: "playVideo",
+            args: []
+          }),
+          "*"
+        );
+      } catch (err) {
+        console.warn("postMessage seek error:", err);
+      }
+    }
+
+    // Smooth scroll video player into view on mobile
+    if (typeof window !== "undefined" && window.innerWidth < 1024 && iframe) {
+      iframe.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+  };
 
   useEffect(() => {
     if (id) loadConversation(id);
@@ -152,13 +274,21 @@ export default function ChatPage() {
           </div>
           <div className="w-full aspect-video bg-black relative">
             <iframe 
+              ref={iframeRef}
+              key={seekTime}
               className="absolute inset-0 w-full h-full"
-              src={`https://www.youtube.com/embed/${video?.youtube_video_id || ''}`}
+              src={`https://www.youtube.com/embed/${video?.youtube_video_id || ''}?enablejsapi=1${seekTime !== null ? `&start=${seekTime}&autoplay=1` : ''}`}
               title="YouTube video player"
               frameBorder="0"
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
               allowFullScreen
             ></iframe>
+            {activeTimestampBadge && (
+              <div className="absolute top-3 right-3 z-10 px-3 py-1 bg-slate-900/85 backdrop-blur-sm text-pastel-mint border border-pastel-mint/40 rounded-full text-xs font-mono font-bold flex items-center gap-1.5 shadow-lg">
+                <span className="w-2 h-2 rounded-full bg-pastel-mint animate-pulse" />
+                Playing at {activeTimestampBadge}
+              </div>
+            )}
           </div>
           <div className="p-6 flex-grow flex flex-col gap-3 overflow-y-auto" data-lenis-prevent>
             <div className="inline-block px-3 py-1 bg-pastel-mint/30 rounded-full text-xs font-bold text-green-700 uppercase tracking-wider self-start">
@@ -283,7 +413,7 @@ export default function ChatPage() {
                        
                        <div className="mt-6 bg-slate-900/5 rounded-xl p-3 border border-slate-900/10 relative z-10">
                           <p className="text-xs font-bold text-slate-600 leading-relaxed">
-                            <span className="inline-block mr-1">💡</span>
+                            <Lightbulb size={14} className="text-amber-500 inline mr-1 shrink-0" />
                             <strong>Tip:</strong> Longer videos take a bit more time to fetch transcripts and generate the knowledge base. Please wait!
                           </p>
                        </div>
@@ -329,16 +459,67 @@ export default function ChatPage() {
                     </div>
                   )}
                   
-                  {/* Message Bubble */}
-                  <div className={`min-w-0 break-words ${
-                    msg.role?.toLowerCase() === "user" 
-                      ? "px-5 py-4 shadow-neubrutalism-sm bg-pastel-peach text-slate-900 font-bold border-cartoon rounded-3xl rounded-tr-sm max-w-[85%]" 
-                      : "py-2 px-5 w-full max-w-[90%] bg-slate-50 border-cartoon shadow-neubrutalism-sm rounded-3xl rounded-tl-sm text-slate-900 overflow-x-auto prose prose-slate prose-p:leading-relaxed prose-pre:bg-slate-900 prose-pre:text-slate-50 prose-pre:border-cartoon prose-pre:rounded-xl prose-code:text-[#9333ea] prose-code:bg-[#9333ea]/10 prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded-md prose-code:font-mono prose-code:before:content-none prose-code:after:content-none prose-headings:font-heading prose-headings:font-black prose-a:text-[#9333ea]"
-                  }`} data-lenis-prevent>
-                    {msg.role?.toLowerCase() === "user" ? (
-                      <p className="font-medium whitespace-pre-wrap">{msg.content}</p>
-                    ) : (
-                      <ReactMarkdown>{msg.content}</ReactMarkdown>
+                  {/* Message Bubble Column */}
+                  <div className={`flex flex-col gap-1 min-w-0 ${msg.role?.toLowerCase() === "user" ? "max-w-[85%]" : "max-w-[90%]"}`}>
+                    <div className={`min-w-0 break-words ${
+                      msg.role?.toLowerCase() === "user" 
+                        ? "px-5 py-4 shadow-neubrutalism-sm bg-pastel-peach text-slate-900 font-bold border-cartoon rounded-3xl rounded-tr-sm" 
+                        : "py-2 px-5 w-full bg-slate-50 border-cartoon shadow-neubrutalism-sm rounded-3xl rounded-tl-sm text-slate-900 overflow-x-auto prose prose-slate prose-p:leading-relaxed prose-pre:bg-slate-900 prose-pre:text-slate-50 prose-pre:border-cartoon prose-pre:rounded-xl prose-code:text-[#9333ea] prose-code:bg-[#9333ea]/10 prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded-md prose-code:font-mono prose-code:before:content-none prose-code:after:content-none prose-headings:font-heading prose-headings:font-black prose-a:text-[#9333ea]"
+                    }`} data-lenis-prevent>
+                      {msg.role?.toLowerCase() === "user" ? (
+                        <p className="font-medium whitespace-pre-wrap">{msg.content}</p>
+                      ) : (
+                        <ReactMarkdown
+                          components={{
+                            a: ({ href, children, ...props }) => {
+                              const timeFromUrl = extractTimestampFromUrl(href);
+                              const timeFromText = extractTimestampFromText(children);
+                              const targetSeconds = timeFromUrl !== null ? timeFromUrl : timeFromText;
+                              
+                              // Check if this is a YouTube link or timestamp link
+                              const isYt = href && (href.includes("youtube.com") || href.includes("youtu.be"));
+                              
+                              if (targetSeconds !== null || isYt) {
+                                const finalSec = targetSeconds !== null ? targetSeconds : 0;
+                                const displayLabel = typeof children === "string" ? children : `${Math.floor(finalSec / 60)}:${(finalSec % 60).toString().padStart(2, '0')}`;
+                                
+                                return (
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.preventDefault();
+                                      e.stopPropagation();
+                                      handleSeek(finalSec, displayLabel);
+                                    }}
+                                    className="inline-flex items-center gap-1.5 px-2.5 py-0.5 mx-1 my-0.5 bg-pastel-mint/50 hover:bg-pastel-mint text-slate-900 border border-slate-900/40 hover:border-slate-900 rounded-full text-xs font-mono font-bold shadow-neubrutalism-sm hover:-translate-y-0.5 active:translate-y-0 transition-all cursor-pointer select-none"
+                                    title={`Play in video player at ${displayLabel}`}
+                                  >
+                                    <Play size={10} className="fill-slate-800 text-slate-800" />
+                                    <span>{children}</span>
+                                  </button>
+                                );
+                              }
+
+                              // Regular external links open in new tab
+                              return (
+                                <a href={href} target="_blank" rel="noopener noreferrer" {...props}>
+                                  {children}
+                                </a>
+                              );
+                            }
+                          }}
+                        >
+                          {processTimestamps(msg.content, video?.youtube_video_id)}
+                        </ReactMarkdown>
+                      )}
+                    </div>
+
+                    {/* Model Indicator for Assistant */}
+                    {msg.role?.toLowerCase() === "assistant" && msg.content && (
+                      <div className="flex items-center gap-1.5 px-2.5 py-0.5 self-start text-[11px] font-mono font-bold text-slate-500 bg-slate-100 border border-slate-200 rounded-full">
+                        <Cpu size={12} className="text-purple-600" />
+                        <span>{msg.model || "GPT-OSS 120B (Groq)"}</span>
+                      </div>
                     )}
                   </div>
 

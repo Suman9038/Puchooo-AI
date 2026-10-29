@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef } from "react";
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
 import { KeyRound, Mail, ArrowLeft, MailCheck } from "lucide-react";
@@ -42,10 +42,10 @@ export default function ForgotPasswordPage() {
   return (
     <div className="min-h-[100dvh] flex items-center justify-center bg-[#FDFBF7] px-4 py-12">
       <div className="w-full max-w-md">
-        <Link to="/login" className="inline-flex items-center gap-2 mb-6 text-slate-500 font-bold hover:text-slate-800 transition-colors">
+        <Link to="/login" className="inline-flex items-center gap-2 mb-6 text-slate-500 font-bold hover:text-slate-800 transition-colors cursor-pointer">
           <ArrowLeft size={20} /> Back to login
         </Link>
-        <motion.div 
+        <motion.div
           layout
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -80,40 +80,53 @@ export default function ForgotPasswordPage() {
                 <p className="text-slate-500 font-medium">No worries, we'll send you reset instructions.</p>
               </div>
 
-              {error && (
-                <motion.div 
-                  initial={{ opacity: 0, y: -10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="p-4 mb-6 rounded-2xl border-2 font-semibold text-sm bg-red-100 border-red-400 text-red-800"
-                >
-                  {error}
-                </motion.div>
-              )}
-
               <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-sm font-bold text-slate-700 ml-2">Email Address</label>
-                  <div className="relative flex items-center">
-                    <Mail size={20} className="absolute left-4 text-slate-400" />
-                    <input
-                      type="email"
-                      required
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      className="w-full pl-12 pr-4 py-4 rounded-2xl border-2 border-slate-300 focus:border-slate-800 focus:ring-0 outline-none transition-colors bg-slate-50 font-medium"
-                      placeholder="hello@example.com"
-                    />
-                  </div>
+                <div className="floating-label relative">
+                  <Mail size={20} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 z-10" />
+                  <input
+                    type="email"
+                    required
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="w-full pl-12 pr-4 py-4 rounded-2xl border-2 border-slate-300 focus:border-slate-800 focus:ring-0 outline-none transition-colors bg-slate-50 font-medium placeholder-shown:text-slate-400"
+                    placeholder=" "
+                  />
+                  <label className="ml-10 text-slate-500">Email Address</label>
                 </div>
+
+                {error && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="p-4 mb-6 rounded-2xl border-2 font-semibold text-sm bg-red-100 border-red-400 text-red-800"
+                  >
+                    {error}
+                  </motion.div>
+                )}
 
                 <motion.button
                   type="submit"
                   disabled={isLoading}
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.95 }}
-                  className="w-full py-4 mt-4 bg-slate-800 rounded-2xl border-cartoon shadow-neubrutalism-sm font-bold text-lg text-white hover:bg-slate-700 transition-colors disabled:opacity-70"
+                  className="w-full py-4 mt-4 bg-slate-800 rounded-2xl border-cartoon shadow-neubrutalism-sm font-bold text-lg text-white hover:bg-slate-700 transition-colors disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                 >
-                  {isLoading ? "Sending..." : "Reset Password"}
+                  {isLoading ? (
+                    <>
+                      <svg
+                        className="animate-spin h-5 w-5 text-white"
+                        xmlns="http://www.w3.org/2000/svg"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                      >
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.747z" />
+                      </svg>
+                      "Sending..."
+                    </>
+                  ) : (
+                    "Reset Password"
+                  )}
                 </motion.button>
               </form>
             </>
