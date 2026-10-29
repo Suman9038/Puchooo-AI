@@ -1,6 +1,7 @@
-from celery import Celery
+import os
 import sys
 import asyncio
+from celery import Celery
 
 if sys.platform == 'win32':
     asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
@@ -11,11 +12,22 @@ from app.rag_pipeline.indexing import VideoIndexingService
 from asgiref.sync import async_to_sync
 from uuid import UUID
 
+def get_redis_url() -> str:
+    for candidate in [
+        os.getenv("UPSTASH_REDIS_URL"),
+        os.getenv("REDIS_URL"),
+        os.getenv("UPSTASH_REDIS_REST_URL"),
+    ]:
+        if candidate and (candidate.startswith("redis://") or candidate.startswith("rediss://")):
+            return candidate
+    return settings.LOCAL_REDIS_URL
+
+redis_url = get_redis_url()
 
 celery_app = Celery(
     "puchoooAI",
-    broker=settings.LOCAL_REDIS_URL,
-    backend=settings.LOCAL_REDIS_URL
+    broker=redis_url,
+    backend=redis_url
 )
 
 @celery_app.task()

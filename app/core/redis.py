@@ -1,3 +1,4 @@
+import os
 import redis.asyncio as redis
 from app.core.config import settings
 from fastapi import Request, HTTPException, status
@@ -5,7 +6,19 @@ from fastapi import Request, HTTPException, status
 
 JTI_EXPIRY = settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60
 
-redis_client= redis.from_url(settings.LOCAL_REDIS_URL, decode_responses=True)
+# Cloud Redis (Upstash) vs Local Redis support
+def get_redis_url() -> str:
+    for candidate in [
+        os.getenv("UPSTASH_REDIS_URL"),
+        os.getenv("REDIS_URL"),
+        os.getenv("UPSTASH_REDIS_REST_URL"),
+    ]:
+        if candidate and (candidate.startswith("redis://") or candidate.startswith("rediss://")):
+            return candidate
+    return settings.LOCAL_REDIS_URL
+
+redis_url = get_redis_url()
+redis_client = redis.from_url(redis_url, decode_responses=True)
 
 
 async def add_token_jti_to_blocklist(jwt_id:str):
@@ -36,22 +49,16 @@ async def rate_limit_auth(request: Request):
     Limits authentication endpoints to 10 requests per 60 seconds per IP address.
     Uses atomic Redis INCR to prevent race conditions with concurrent requests.
     """
-    # Use request.client.host if available, otherwise fall back to server hostname
-    # to avoid "unknown" IP grouping that defeats per-IP rate limiting
     ip = getattr(request.client, 'host', None) or "server"
     key = f"rate_limit:auth:{ip}"
     limit = 10
     window = 60
     
-    # Atomic INCR with NX/EX for rate limiting - this is the race-condition-free approach
-    # INCR returns the new counter value after incrementing
     current = await redis_client.incr(key)
     
-    # Set expiration only on first increment (when key was created)
     if current == 1:
         await redis_client.expire(key, window)
     
-    # Check if current count exceeds the limit
     if current > limit:
         raise HTTPException(
             status_code=status.HTTP_429_TOO_MANY_REQUESTS,

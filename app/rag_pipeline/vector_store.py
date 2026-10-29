@@ -29,21 +29,31 @@ class QdrantService:
             return
 
         # Cloud Qdrant vs Local Qdrant support
-        qdrant_url = os.getenv("QDRANT_URL") or (
-            settings.LOCAL_QDRANT_URL if settings.LOCAL_QDRANT_URL and "localhost" not in settings.LOCAL_QDRANT_URL else None
+        # Checks QDRANT_CLOUD_ENDPOINT, CLOUD_QDRANT_URL, or QDRANT_URL
+        qdrant_url = (
+            os.getenv("QDRANT_CLOUD_ENDPOINT")
+            or os.getenv("CLOUD_QDRANT_URL")
+            or os.getenv("QDRANT_URL")
+            or (settings.LOCAL_QDRANT_URL if settings.LOCAL_QDRANT_URL and "localhost" not in settings.LOCAL_QDRANT_URL else None)
         )
-        qdrant_api_key = os.getenv("QDRANT_API_KEY")
+        qdrant_api_key = (
+            os.getenv("QDRANT_CLOUD_API_KEY")
+            or os.getenv("CLOUD_QDRANT_API_KEY")
+            or os.getenv("QDRANT_API_KEY")
+        )
 
         if qdrant_url:
             logger.info(f"Connecting to Cloud Qdrant cluster: {qdrant_url}")
             self.client = QdrantClient(
                 url=qdrant_url,
-                api_key=qdrant_api_key
+                api_key=qdrant_api_key,
+                check_compatibility=False
             )
         else:
             self.client = QdrantClient(
                 host=settings.QDRANT_HOST,
-                port=settings.QDRANT_PORT
+                port=settings.QDRANT_PORT,
+                check_compatibility=False
             )
 
         # Embedding Provider selection:
