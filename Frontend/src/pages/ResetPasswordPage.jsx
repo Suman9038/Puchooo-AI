@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import { motion } from "framer-motion";
 import { useSearchParams, useNavigate, Link } from "react-router-dom";
-import { LockKeyhole, ArrowLeft, CheckCircle2 } from "lucide-react";
+import { LockKeyhole, CheckCircle2 } from "lucide-react";
 import gsap from "gsap";
 import { useAuthStore } from "../store/useAuthStore";
 

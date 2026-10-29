@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useAdminStore } from "../store/useAdminStore";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { 
   Users, 
   Video, 

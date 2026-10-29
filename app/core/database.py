@@ -3,10 +3,23 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from app.core.config import settings
 
+engine = create_async_engine(
+    settings.LOCAL_DATABASE_URL,
+    pool_size=20,
+    max_overflow=10,
+    pool_timeout=30,
+    pool_recycle=1800,
+    pool_pre_ping=True,
+    echo=False
+)
 
-engine = create_async_engine(settings.LOCAL_DATABASE_URL, echo=False)
-
-sessionlocal= sessionmaker(class_=AsyncSession, autoflush=False, autocommit=False, bind=engine, expire_on_commit=False)
+sessionlocal = sessionmaker(
+    class_=AsyncSession,
+    autoflush=False,
+    autocommit=False,
+    bind=engine,
+    expire_on_commit=False
+)
 
 Base = declarative_base()
 

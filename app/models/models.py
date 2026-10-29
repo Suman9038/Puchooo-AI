@@ -96,7 +96,7 @@ class Conversation(Base):
     
     video = relationship("Video", back_populates="conversations")
 
-    messages= relationship("Message", back_populates="conversation", cascade="all, delete-orphan",lazy="selectin",passive_deletes=False)
+    messages = relationship("Message", back_populates="conversation", cascade="all, delete-orphan", lazy="selectin", passive_deletes=False, order_by="Message.created_at.asc()")
 
     # Composite index for the most common query pattern
     __table_args__ = (

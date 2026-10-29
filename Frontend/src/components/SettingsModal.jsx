@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X } from "lucide-react";
+import { X, CheckCircle2 } from "lucide-react";
 import { useAuthStore } from "../store/useAuthStore";
 
 export default function SettingsModal({ isOpen, onClose }) {

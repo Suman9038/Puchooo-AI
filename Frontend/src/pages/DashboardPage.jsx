@@ -1,44 +1,61 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { useAuthStore } from "../store/useAuthStore";
 import { useVideoStore } from "../store/useVideoStore";
 import { useChatStore } from "../store/useChatStore";
 import { motion } from "framer-motion";
-import { useNavigate, Link } from "react-router-dom";
-import { Search, Loader2, PlaySquare, MessageSquare, ArrowRight, Sparkles } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { Search, Loader2, PlaySquare, MessageSquare, ArrowRight, Sparkles, Play } from "lucide-react";
 
 export default function DashboardPage() {
   const { user } = useAuthStore();
-  const { videos, fetchVideos, isProcessing, error: videoError } = useVideoStore();
+  const { fetchVideos, isProcessing, error: videoError } = useVideoStore();
   const { conversations, myVideos, fetchConversations, fetchMyVideos, createConversation, isFetchingVideos } = useChatStore();
   
   const [youtubeUrl, setYoutubeUrl] = useState("");
   const [activeProcessUrl, setActiveProcessUrl] = useState(null);
   const navigate = useNavigate();
+  const [openingVideoId, setOpeningVideoId] = useState(null);
 
-  useEffect(() => {
-    fetchVideos();
-    fetchConversations();
-    fetchMyVideos();
+  const getConversationsForVideo = (v) => {
+    if (!conversations || conversations.length === 0) return [];
+    return conversations.filter(c => 
+      (c.video?.id && String(c.video.id) === String(v.id)) ||
+      (c.video?.youtube_video_id && c.video.youtube_video_id === v.youtube_video_id)
+    );
+  };
 
-    // Extension Auto-Detect YouTube URL
-    if (typeof chrome !== "undefined" && chrome.tabs && chrome.tabs.query) {
-      chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-        const url = tabs[0]?.url;
-        if (url && url.includes("youtube.com/watch")) {
-          setYoutubeUrl(url);
-          handleProcessVideo(url);
-        }
-      });
+  const handleOpenVideoChat = async (v, e) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
     }
-  }, [fetchVideos, fetchConversations, fetchMyVideos]);
+    const matches = getConversationsForVideo(v);
+    if (matches.length > 0) {
+      const sorted = [...matches].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+      navigate(`/chat/${sorted[0].id}`);
+      return;
+    }
+
+    setOpeningVideoId(v.id);
+    try {
+      const conv = await createConversation(`https://youtube.com/watch?v=${v.youtube_video_id}`);
+      if (conv && conv.conversation_id) {
+        navigate(`/chat/${conv.conversation_id}`);
+      }
+    } catch (err) {
+      console.error("Failed to start chat session:", err);
+    } finally {
+      setOpeningVideoId(null);
+    }
+  };
 
   const extractYoutubeId = (url) => {
-    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
     const match = url.match(regExp);
     return (match && match[2].length === 11) ? match[2] : null;
   };
 
-  const handleProcessVideo = async (url) => {
+  const handleProcessVideo = useCallback(async (url) => {
     if (!url) return;
     
     const videoId = extractYoutubeId(url);
@@ -63,24 +80,48 @@ export default function DashboardPage() {
     } finally {
       setActiveProcessUrl(null);
     }
-  };
+  }, [conversations, createConversation, navigate]);
+
+  useEffect(() => {
+    fetchConversations();
+    fetchMyVideos();
+
+    // Extension Auto-Detect YouTube URL
+    if (typeof window !== "undefined" && window.chrome?.tabs?.query) {
+      window.chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+        const url = tabs[0]?.url;
+        if (url && url.includes("youtube.com/watch")) {
+          setYoutubeUrl(url);
+          handleProcessVideo(url);
+        }
+      });
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const containerVariants = {
     hidden: { opacity: 0 },
     show: {
       opacity: 1,
-      transition: { staggerChildren: 0.15 }
+      transition: { staggerChildren: 0.08 }
     }
   };
 
   const springBounce = {
-    type: "spring", stiffness: 400, damping: 15, bounce: 0.6
+    type: "spring", stiffness: 300, damping: 25
+  };
+
+  const gentleTransition = {
+    duration: 0.25,
+    ease: "easeOut"
   };
 
   const itemVariants = {
-    hidden: { opacity: 0, y: 30, scale: 0.9 },
-    show: { opacity: 1, y: 0, scale: 1, transition: springBounce }
+    hidden: { opacity: 0, y: 12 },
+    show: { opacity: 1, y: 0, transition: gentleTransition }
   };
+
+  const hasVideos = Array.isArray(myVideos) && myVideos.length > 0;
+  const showSkeleton = isFetchingVideos && !hasVideos;
 
   return (
     <div className="w-full flex flex-col gap-12 relative min-h-screen bg-pastel-blue">
@@ -93,10 +134,8 @@ export default function DashboardPage() {
           backgroundSize: '40px 40px',
         }}
       >
-        <motion.div 
-          animate={{ backgroundPosition: ['0px 0px', '40px 40px'] }}
-          transition={{ duration: 4, repeat: Infinity, ease: "linear" }}
-          className="absolute inset-0 w-full h-full"
+        <div 
+          className="absolute inset-0 w-full h-full animate-[slide_20s_linear_infinite]"
           style={{
             backgroundImage: 'radial-gradient(var(--border-color-cartoon) 3px, transparent 3px)',
             backgroundSize: '40px 40px',
@@ -177,14 +216,13 @@ export default function DashboardPage() {
             </div>
             
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
-              {isFetchingVideos ? (
+              {showSkeleton ? (
                 Array.from({ length: 4 }).map((_, idx) => (
-                  <motion.div
+                  <div
                     key={`skeleton-${idx}`}
-                    variants={itemVariants}
                     className="card-cartoon flex flex-col p-4 gap-4 bg-white opacity-90"
                   >
-                    <div className="w-full h-48 bg-slate-200 border-cartoon rounded-xl overflow-hidden relative">
+                    <div className="w-full aspect-video bg-slate-200 border-cartoon rounded-xl overflow-hidden relative">
                       <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/60 to-transparent animate-shimmer" />
                     </div>
 
@@ -202,9 +240,9 @@ export default function DashboardPage() {
                           <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/60 to-transparent animate-shimmer" />
                       </div>
                     </div>
-                  </motion.div>
+                  </div>
                 ))
-              ) : (!myVideos || myVideos.length === 0) ? (
+              ) : !hasVideos ? (
                 <div className="empty-state-card">
                   <div className="flex flex-col items-center gap-4">
                     <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center border-cartoon shadow-neubrutalism-sm">
@@ -215,45 +253,75 @@ export default function DashboardPage() {
                   </div>
                 </div>
               ) : (
-                myVideos.map((video) => (
-                  <motion.div 
-                    key={video.id}
-                    variants={itemVariants}
-                    className="card-cartoon flex flex-col p-4 gap-4 group cursor-pointer bg-white"
-                  >
-                    <div className="w-full h-48 bg-slate-200 border-cartoon rounded-xl overflow-hidden relative">
-                      <img 
-                        src={`https://img.youtube.com/vi/${video.youtube_video_id}/maxresdefault.jpg`}
-                        onError={(e) => { e.target.src = `https://img.youtube.com/vi/${video.youtube_video_id}/mqdefault.jpg` }}
-                        alt="Thumbnail"
-                        className="w-full h-full object-cover"
-                      />
-                    </div>
-                    
-                    <div className="flex flex-col flex-grow justify-between gap-6 px-2 pb-2">
-                      <div className="flex flex-col gap-2">
-                        <h3 className="font-black text-slate-900 text-xl line-clamp-2 leading-tight" title={video.title}>
-                          {video.title}
-                        </h3>
+                myVideos.map((video) => {
+                  const matchingConvs = getConversationsForVideo(video);
+                  const isOpeningThis = openingVideoId === video.id;
+
+                  return (
+                    <motion.div 
+                      key={video.id}
+                      initial={false}
+                      animate={{ opacity: 1, y: 0 }}
+                      onClick={(e) => handleOpenVideoChat(video, e)}
+                      className="card-cartoon flex flex-col p-4 gap-4 group cursor-pointer bg-white hover:-translate-y-1 transition-all"
+                    >
+                      <div className="w-full aspect-video bg-slate-900 border-cartoon rounded-xl overflow-hidden relative shadow-inner">
+                        <img 
+                          src={`https://img.youtube.com/vi/${video.youtube_video_id}/hqdefault.jpg`}
+                          onError={(e) => { 
+                            if (!e.target.dataset.triedFallback) {
+                              e.target.dataset.triedFallback = "true";
+                              e.target.src = `https://img.youtube.com/vi/${video.youtube_video_id}/mqdefault.jpg`;
+                            }
+                          }}
+                          alt={video.title || "Video thumbnail"}
+                          loading="lazy"
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-slate-950/70 via-transparent to-transparent flex items-end justify-between p-2.5">
+                          <span className="px-2.5 py-1 bg-pastel-mint border border-slate-900 text-slate-900 font-bold text-xs rounded-full shadow-sm flex items-center gap-1.5">
+                            <Play size={10} className="fill-slate-900 text-slate-900" />
+                            <span>
+                              {matchingConvs.length > 0
+                                ? `${matchingConvs.length} ${matchingConvs.length === 1 ? 'Session' : 'Sessions'}`
+                                : 'Ready'}
+                            </span>
+                          </span>
+                          <span className="px-2 py-0.5 bg-black/75 backdrop-blur-sm text-white font-mono text-[10px] font-bold rounded-md">
+                            YouTube
+                          </span>
+                        </div>
                       </div>
                       
-                      <button 
-                        onClick={() => {
-                          const existingConv = conversations?.find(c => c.video?.id === video.id);
-                          if (existingConv) {
-                            navigate(`/chat/${existingConv.id}`);
-                          } else {
-                            navigate(`/chat?video_id=${video.id}`);
-                          }
-                        }}
-                        className="w-full py-4 bg-pastel-peach border-cartoon text-slate-900 font-black rounded-xl shadow-neubrutalism-sm hover:bg-pastel-yellow hover:-translate-y-1 hover:shadow-neubrutalism-hover active:translate-y-0 active:shadow-neubrutalism-sm transition-all flex items-center justify-center gap-3 text-lg"
-                      >
-                        <MessageSquare size={24} />
-                        Open Chats
-                      </button>
-                    </div>
-                  </motion.div>
-                ))
+                      <div className="flex flex-col flex-grow justify-between gap-4 px-1 pb-1">
+                        <div className="flex flex-col gap-1.5">
+                          <h3 className="font-black text-slate-900 text-lg sm:text-xl line-clamp-2 leading-tight group-hover:text-purple-700 transition-colors" title={video.title}>
+                            {video.title}
+                          </h3>
+                        </div>
+                        
+                        <button 
+                          type="button"
+                          disabled={isOpeningThis}
+                          onClick={(e) => handleOpenVideoChat(video, e)}
+                          className="w-full py-3.5 sm:py-4 bg-pastel-peach border-cartoon text-slate-900 font-black rounded-xl shadow-neubrutalism-sm hover:bg-pastel-yellow hover:-translate-y-0.5 hover:shadow-neubrutalism-hover active:translate-y-0 active:shadow-neubrutalism-sm transition-all flex items-center justify-center gap-2.5 text-base sm:text-lg cursor-pointer disabled:opacity-75"
+                        >
+                          {isOpeningThis ? (
+                            <>
+                              <Loader2 size={20} className="animate-spin text-slate-900" />
+                              <span>Opening Session...</span>
+                            </>
+                          ) : (
+                            <>
+                              <MessageSquare size={20} />
+                              <span>{matchingConvs.length > 0 ? "Continue Chat" : "Start Chat"}</span>
+                            </>
+                          )}
+                        </button>
+                      </div>
+                    </motion.div>
+                  );
+                })
               )}
             </div>
           </motion.div>

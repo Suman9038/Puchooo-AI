@@ -192,8 +192,10 @@ class VideoService:
         )
 
         try:
+            if video.youtube_video_id:
+                self.qdrant_service.delete_video_documents(str(video.youtube_video_id))
             self.qdrant_service.delete_video_documents(str(video.id))
-            logger.info("Qdrant vectors deleted for video=%s", video.id)
+            logger.info("Qdrant vectors deleted for video=%s (yt_id=%s)", video.id, video.youtube_video_id)
         except Exception as e:
             logger.warning("Failed to delete Qdrant vectors for video=%s: %s", video.id, e)
 

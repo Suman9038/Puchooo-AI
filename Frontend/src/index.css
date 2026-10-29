@@ -26,6 +26,25 @@
     0% { transform: translateX(-100%); }
     100% { transform: translateX(100%); }
   }
+
+  --animate-blob: blob 9s infinite ease-in-out;
+  @keyframes blob {
+    0%, 100% {
+      transform: translate(0px, 0px) scale(1);
+    }
+    33% {
+      transform: translate(30px, -40px) scale(1.08);
+    }
+    66% {
+      transform: translate(-20px, 20px) scale(0.94);
+    }
+  }
+
+  --animate-slide: slide 20s linear infinite;
+  @keyframes slide {
+    0% { background-position: 0 0; }
+    100% { background-position: 40px 40px; }
+  }
 }
 
 @layer base {
@@ -156,6 +175,15 @@
     border-color: #4ade80;
     box-shadow: 0 0 0 2px rgba(74, 222, 128, 0.2);
     transition: all 0.2s ease;
+  }
+
+  /* Animation Delay Utilities */
+  .animation-delay-2000 {
+    animation-delay: 2s;
+  }
+
+  .animation-delay-4000 {
+    animation-delay: 4s;
   }
 }
 

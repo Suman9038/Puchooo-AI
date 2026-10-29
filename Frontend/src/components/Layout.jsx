@@ -3,7 +3,7 @@ import { Outlet, Link, useNavigate } from "react-router-dom";
 import Lenis from "lenis";
 import { useAuthStore } from "../store/useAuthStore";
 import { motion } from "framer-motion";
-import { LogOut, BookOpen, MessageSquare, Video, Shield, Settings } from "lucide-react";
+import { LogOut, Shield, Settings } from "lucide-react";
 import { cn, isExtension } from "../lib/utils";
 import SettingsModal from "./SettingsModal";
 import logo from "../assets/logo.png";
@@ -15,6 +15,12 @@ export default function Layout() {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
   useEffect(() => {
+    // Only initialize smooth scrolling on non-touch desktop screens to preserve native touch scrolling on mobile
+    const isTouch = typeof window !== "undefined" && ("ontouchstart" in window || navigator.maxTouchPoints > 0 || window.innerWidth < 1024);
+    if (isTouch) {
+      return;
+    }
+
     const lenis = new Lenis({
       duration: 1.2,
       easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
@@ -50,11 +56,11 @@ export default function Layout() {
         transition={{ type: "spring", stiffness: 100, damping: 20 }}
         className={cn(
           "fixed left-1/2 -translate-x-1/2 z-50 flex items-center justify-between bg-white/70 backdrop-blur-md border-cartoon shadow-neubrutalism-sm",
-          isExtension ? "top-2 w-[95%] p-2 rounded-2xl" : "top-4 w-11/12 max-w-4xl p-4 rounded-3xl"
+          isExtension ? "top-2 w-[95%] p-2 rounded-2xl" : "top-2 sm:top-4 w-[96%] sm:w-11/12 max-w-4xl p-2.5 sm:p-4 rounded-2xl sm:rounded-3xl"
         )}
       >
         <Link to="/dashboard" className="flex items-center">
-          <img src={logo} alt="Puchooo.AI Logo" className="h-12 w-auto object-contain drop-shadow-sm transition-transform hover:scale-105" />
+          <img src={logo} alt="Puchooo.AI Logo" className="h-9 sm:h-12 w-auto object-contain drop-shadow-sm transition-transform hover:scale-105" />
         </Link>
 
         {isAuthenticated && (
@@ -98,7 +104,7 @@ export default function Layout() {
 
       <main className={cn(
         "flex-grow relative z-10 mx-auto w-full",
-        isExtension ? "pt-20 pb-4 px-2" : "pt-28 pb-12 px-4 sm:px-6 md:px-8 max-w-7xl"
+        isExtension ? "pt-16 pb-2 px-2" : "pt-16 sm:pt-24 lg:pt-28 pb-1 sm:pb-8 lg:pb-12 px-1.5 sm:px-4 md:px-8 max-w-7xl"
       )}>
         <Outlet />
       </main>

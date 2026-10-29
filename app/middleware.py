@@ -36,22 +36,23 @@ def setup_middlewares(app: FastAPI):
     # 1. Custom Request Logging Middleware
     app.add_middleware(RequestTimeLoggerMiddleware)
     
-    # 2. CORS Middleware (Crucial for Frontend)
-    # Adding typical React/Next.js/Vite development ports
+    # 2. CORS Middleware (Supports local development & mobile testing via local IP)
     origins = [
-        "*",
         "http://localhost",
-        "http://localhost:3000",   # React / Next.js
-        "http://localhost:5173",   # Vite
+        "http://localhost:3000",
+        "http://localhost:5173",
         "http://localhost:8080",
+        "http://127.0.0.1:5173",
+        "http://127.0.0.1:3000",
     ]
 
     app.add_middleware(
         CORSMiddleware,
         allow_origins=origins,
-        allow_credentials=True,       # Allow cookies & authorization headers
-        allow_methods=["*"],          # Allow all methods (GET, POST, PUT, DELETE, OPTIONS)
-        allow_headers=["*"],          # Allow all headers
+        allow_origin_regex=r"https?://.*",  # Dynamically allows mobile IPs like 192.168.x.x with credentials
+        allow_credentials=True,             # Allow cookies & authorization headers
+        allow_methods=["*"],                # Allow all methods (GET, POST, PUT, DELETE, OPTIONS)
+        allow_headers=["*"],                # Allow all headers
     )
     
     logger.info("Middlewares configured successfully.")

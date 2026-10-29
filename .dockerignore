@@ -1,0 +1,50 @@
+__pycache__
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual environments
+.env
+.venv
+env/
+venv/
+ENV/
+
+# Caches and scratch
+.cache
+.embeddings
+scratch/
+tests/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Version control and IDE
+.git
+.github
+.gitignore
+.claude
+.gemini
+.idea
+.vscode
+
+# Frontend files (deployed separately on Vercel)
+Frontend/
+docs/
+

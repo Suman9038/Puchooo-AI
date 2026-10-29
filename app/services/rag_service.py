@@ -21,16 +21,47 @@ from app.services.video_service import VideoService
 from app.schemas.video_schema import VideoProcessRequest
 
 class RagService:
-    def __init__(self,qdrant_service:QdrantService=None,conversation_repository:ConversationRepository=None,message_repository:MessageRepository=None,video_repository:VideoRepository=None, indexing_service: VideoIndexingService | None = None, video_service: VideoService | None = None):
-        self.llm= LLMModels.get_fallback_router_llm()
-        # self.llm= LLMModels.get_ollama_model()
-        self.qdrant_service=qdrant_service or QdrantService()
-        self.conversation_repo=conversation_repository or ConversationRepository()
-        self.message_repo=message_repository or MessageRepository()
-        self.video_repo=video_repository or VideoRepository()
-        self.indexing_service = indexing_service or VideoIndexingService()
-        self.video_service = video_service or VideoService(video_repository=self.video_repo)
+    def __init__(
+        self,
+        qdrant_service: QdrantService | None = None,
+        conversation_repository: ConversationRepository | None = None,
+        message_repository: MessageRepository | None = None,
+        video_repository: VideoRepository | None = None,
+        indexing_service: VideoIndexingService | None = None,
+        video_service: VideoService | None = None
+    ):
+        self._llm = None
+        self._qdrant_service = qdrant_service
+        self._indexing_service = indexing_service
+        self._video_service = video_service
+        self.conversation_repo = conversation_repository or ConversationRepository()
+        self.message_repo = message_repository or MessageRepository()
+        self.video_repo = video_repository or VideoRepository()
         logger.info("RAG Service initialized")
+
+    @property
+    def llm(self):
+        if self._llm is None:
+            self._llm = LLMModels.get_fallback_router_llm()
+        return self._llm
+
+    @property
+    def qdrant_service(self):
+        if self._qdrant_service is None:
+            self._qdrant_service = QdrantService()
+        return self._qdrant_service
+
+    @property
+    def indexing_service(self):
+        if self._indexing_service is None:
+            self._indexing_service = VideoIndexingService()
+        return self._indexing_service
+
+    @property
+    def video_service(self):
+        if self._video_service is None:
+            self._video_service = VideoService(video_repository=self.video_repo)
+        return self._video_service
 
     async def _build_chat_history(self, conversation_id:UUID, user_id:UUID, db: AsyncSession, verify_ownership:bool=True):
         """

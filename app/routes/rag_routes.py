@@ -7,6 +7,7 @@ from app.core.database import get_db
 from app.auth.dependencies import RoleChecker
 from app.models.models import User, UserRole
 from app.services.rag_service import RagService
+from functools import lru_cache
 from typing import List
 from app.rag_pipeline.rag_schema import (
     AskQuestionResponse, 
@@ -22,8 +23,9 @@ router = APIRouter(
     tags=["Chat & RAG"]
 )
 
-# Dependency injection for RagService
-def get_rag_service():
+# Dependency injection for RagService (singleton pattern)
+@lru_cache(maxsize=1)
+def get_rag_service() -> RagService:
     return RagService()
 
 any_user = RoleChecker(allowed_roles=[UserRole.USER, UserRole.ADMIN])
@@ -91,14 +93,13 @@ async def get_chat_history(
     rag_service: RagService = Depends(get_rag_service)
 ):
     """
-    Get all messages for a specific conversation.
+    Get all messages for a specific conversation in strict chronological order.
     """
-    conversation = await rag_service.get_conversation(
+    return await rag_service.conversation_repo.get_chat_history(
         conversation_id=conversation_id,
         user_id=current_user.id,
         db=db
     )
-    return conversation.messages
 
 @router.post("/conversations/{conversation_id}/ask", response_model=AskQuestionResponse)
 async def ask_question(

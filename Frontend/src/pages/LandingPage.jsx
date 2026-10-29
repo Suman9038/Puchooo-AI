@@ -1,14 +1,14 @@
-import React, { useEffect, useRef } from "react";
+import React from "react";
 import { Link } from "react-router-dom";
-import { motion, useScroll, useTransform } from "framer-motion";
-import { ArrowRight, Sparkles, BookOpen, MessageSquare, Brain, Play, Shield, Zap } from "lucide-react";
+import { motion } from "framer-motion";
+import { ArrowRight, Sparkles, BookOpen, MessageSquare, Brain, Zap } from "lucide-react";
 import { useAuthStore } from "../store/useAuthStore";
 import logo from "../assets/logo.png";
 
 export default function LandingPage() {
   const { isAuthenticated } = useAuthStore();
-  const { scrollYProgress } = useScroll();
-  const yBg = useTransform(scrollYProgress, [0, 1], ["0%", "50%"]);
+
+
 
   const springBounce = {
     type: "spring",

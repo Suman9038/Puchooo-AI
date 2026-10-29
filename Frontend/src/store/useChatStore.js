@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import api from "../lib/axios";
+import { useAuthStore } from "./useAuthStore";
 
 export const useChatStore = create((set, get) => ({
   conversations: [],
@@ -8,13 +9,22 @@ export const useChatStore = create((set, get) => ({
   isLoading: false,
   isAsking: false,
   isFetchingVideos: false,
+  isFetchingConversations: false,
   error: null,
 
   fetchMyVideos: async () => {
+    if (get().isFetchingVideos) return;
     set({ isFetchingVideos: true });
     try {
       const response = await api.get("/chat/videos");
-      set({ myVideos: response.data, isFetchingVideos: false });
+      const current = get().myVideos;
+      const isSame = Array.isArray(current) && current.length === response.data.length &&
+        current.every((v, i) => v.id === response.data[i]?.id && v.status === response.data[i]?.status);
+
+      set({ 
+        myVideos: isSame ? current : response.data, 
+        isFetchingVideos: false 
+      });
     } catch (err) {
       console.error("Failed to fetch videos", err);
       set({ isFetchingVideos: false });
@@ -22,12 +32,22 @@ export const useChatStore = create((set, get) => ({
   },
 
   fetchConversations: async (videoId = null) => {
+    if (get().isFetchingConversations) return;
+    set({ isFetchingConversations: true });
     try {
       const url = videoId ? `/chat/conversations?video_id=${videoId}` : "/chat/conversations";
       const response = await api.get(url);
-      set({ conversations: response.data });
+      const current = get().conversations;
+      const isSame = !videoId && Array.isArray(current) && current.length === response.data.length &&
+        current.every((c, i) => c.id === response.data[i]?.id && c.title === response.data[i]?.title);
+
+      set({ 
+        conversations: isSame ? current : response.data, 
+        isFetchingConversations: false 
+      });
     } catch (err) {
       console.error("Failed to fetch conversations", err);
+      set({ isFetchingConversations: false });
     }
   },
 
@@ -74,7 +94,11 @@ export const useChatStore = create((set, get) => ({
       }
       
       const messagesRes = await api.get(`/chat/conversations/${id}/messages`);
-      set({ activeConversation: { ...conv, messages: messagesRes.data }, isLoading: false });
+      const rawMessages = Array.isArray(messagesRes.data) ? messagesRes.data : [];
+      const sortedMessages = [...rawMessages].sort(
+        (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+      );
+      set({ activeConversation: { ...conv, messages: sortedMessages }, isLoading: false });
     } catch (err) {
       set({ error: "Failed to load chat", isLoading: false });
     }
@@ -133,7 +157,7 @@ export const useChatStore = create((set, get) => ({
     }));
 
     try {
-      const { useAuthStore } = await import("./useAuthStore");
+
       const token = useAuthStore.getState().accessToken;
 
       const response = await fetch(`${api.defaults.baseURL}/chat/conversations/${conversationId}/stream`, {
@@ -153,6 +177,8 @@ export const useChatStore = create((set, get) => ({
       const decoder = new TextDecoder("utf-8");
       let done = false;
       let buffer = "";
+      let accumulatedAnswer = "";
+      let modelReceived = null;
 
       while (!done) {
         const { value, done: doneReading } = await reader.read();
@@ -174,6 +200,7 @@ export const useChatStore = create((set, get) => ({
                 const data = JSON.parse(dataStr);
                 
                 if (data.model) {
+                  modelReceived = data.model;
                   set((state) => {
                     if (!state.activeConversation) return state;
                     const msgs = state.activeConversation.messages;
@@ -196,7 +223,7 @@ export const useChatStore = create((set, get) => ({
                     const msgs = state.activeConversation.messages;
                     const newMsgs = msgs.map(msg => 
                       msg.id === aiMessageId 
-                        ? { ...msg, content: "Unable to generate response. Please check video status and try again." } 
+                        ? { ...msg, content: accumulatedAnswer || "Unable to generate response. Please check video status and try again." } 
                         : msg
                     );
                     return {
@@ -215,11 +242,12 @@ export const useChatStore = create((set, get) => ({
                 }
                 
                 if (data.token) {
+                  accumulatedAnswer += data.token;
                   set((state) => {
                     if (!state.activeConversation) return state;
                     const msgs = state.activeConversation.messages;
                     const newMsgs = msgs.map(msg => 
-                      msg.id === aiMessageId ? { ...msg, content: msg.content + data.token } : msg
+                      msg.id === aiMessageId ? { ...msg, content: accumulatedAnswer, model: modelReceived || msg.model } : msg
                     );
                     return {
                       activeConversation: {
@@ -237,10 +265,43 @@ export const useChatStore = create((set, get) => ({
         }
       }
       
+      // Ensure final state retains the full response
+      if (accumulatedAnswer) {
+        set((state) => {
+          if (!state.activeConversation) return state;
+          const msgs = state.activeConversation.messages;
+          const newMsgs = msgs.map(msg => 
+            msg.id === aiMessageId ? { ...msg, content: accumulatedAnswer, model: modelReceived || msg.model } : msg
+          );
+          return {
+            activeConversation: {
+              ...state.activeConversation,
+              messages: newMsgs
+            }
+          };
+        });
+      }
+      
       set({ isAsking: false });
     } catch (err) {
       console.error("Failed to stream message", err);
-      set({ error: "Failed to send message", isAsking: false });
+      set((state) => {
+        if (!state.activeConversation) return { error: "Failed to send message", isAsking: false };
+        const msgs = state.activeConversation.messages || [];
+        const newMsgs = msgs.map(msg =>
+          msg.id === aiMessageId && !msg.content
+            ? { ...msg, content: "⚠️ Response interrupted. Please ask again." }
+            : msg
+        );
+        return {
+          activeConversation: {
+            ...state.activeConversation,
+            messages: newMsgs
+          },
+          error: "Failed to send message",
+          isAsking: false
+        };
+      });
     }
   },
 
