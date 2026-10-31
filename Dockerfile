@@ -54,17 +54,20 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Copy isolated virtualenv from builder
 COPY --from=builder /app/.venv /app/.venv
 
+# Pre-cache FastEmbed multilingual model so runtime startup is instantaneous (<1s)
+RUN python -c "from fastembed import TextEmbedding; TextEmbedding('sentence-transformers/paraphrase-multilingual-mpnet-base-v2')"
+
 # Copy application source code
 COPY . .
 
 # Configure permissions for entrypoint
 RUN chmod +x /app/docker-entrypoint.sh
 
-EXPOSE 8000
+EXPOSE 10000
 
 # Container healthcheck probe against root endpoint
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
-    CMD curl -f http://localhost:${PORT:-8000}/ || exit 1
+    CMD curl -f http://localhost:${PORT:-10000}/ || exit 1
 
 ENTRYPOINT ["/app/docker-entrypoint.sh"]
 

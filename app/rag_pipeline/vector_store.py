@@ -69,9 +69,11 @@ class QdrantService:
             logger.info("Using FastEmbed Multilingual In-Process Embeddings (768-dim, 100% free, 0 rate limits)")
             self.embedding = GetEmbeddingModels.get_fastembed_models()
         elif emb_provider == "ollama":
-            # If running in cloud container without Ollama daemon, gracefully use fastembed
-            if is_cloud and not os.getenv("OLLAMA_BASE_URL"):
-                logger.warning("Cloud environment detected without local Ollama daemon. Automatically using FastEmbed Multilingual.")
+            # If running in cloud container, Ollama on localhost/127.0.0.1 is unreachable
+            ollama_url = os.getenv("OLLAMA_BASE_URL", "")
+            is_local_ollama = not ollama_url or "localhost" in ollama_url or "127.0.0.1" in ollama_url
+            if is_cloud and is_local_ollama:
+                logger.warning("Cloud environment detected where local Ollama is unreachable. Automatically using FastEmbed Multilingual.")
                 self.embedding = GetEmbeddingModels.get_fastembed_models()
             else:
                 logger.info("Using Local Ollama embeddings (embeddinggemma:300m) - 100% free with no rate limits")
