@@ -49,17 +49,14 @@ export default function Layout() {
 
   return (
     <div className="min-h-[100dvh] flex flex-col relative">
-      {/* Floating Navbar Container */}
+      {/* Fixed Navbar Container */}
       <header className="fixed top-2 sm:top-4 inset-x-0 z-50 flex justify-center pointer-events-none px-2 sm:px-4">
-        <motion.nav 
-          initial={{ y: -20, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ duration: 0.3, ease: "easeOut" }}
+        <nav 
           className={cn(
-            "pointer-events-auto flex items-center justify-between bg-white/90 backdrop-blur-md border-cartoon shadow-neubrutalism-sm transition-all",
+            "pointer-events-auto flex items-center justify-between bg-white/95 backdrop-blur-md border-cartoon shadow-neubrutalism-sm transition-all",
             isExtension 
               ? "w-full max-w-md p-2 rounded-2xl" 
-              : "w-full max-w-4xl px-3 py-2 sm:px-5 sm:py-3 rounded-2xl sm:rounded-3xl"
+              : "w-full max-w-4xl px-3 py-2 sm:px-5 sm:py-2.5 rounded-2xl sm:rounded-3xl"
           )}
         >
           <Link to="/dashboard" className="flex items-center gap-2 shrink-0 group">
@@ -78,19 +75,20 @@ export default function Layout() {
               {user?.role === "admin" && (
                 <Link to="/admin">
                   <motion.button 
-                    whileHover={{ scale: 1.05, rotate: -5 }}
+                    whileHover={{ scale: 1.05, rotate: -3 }}
                     whileTap={{ scale: 0.95 }}
-                    className="p-1.5 sm:p-2 bg-pastel-blue rounded-xl border-2 border-slate-700 shadow-neubrutalism-sm text-slate-800 flex items-center justify-center hover:bg-blue-200 transition-colors"
-                    title="Admin Panel"
+                    className="px-2.5 py-1.5 sm:px-3 sm:py-2 bg-pastel-blue rounded-xl border-cartoon shadow-neubrutalism-sm text-slate-900 flex items-center gap-1.5 hover:bg-blue-300 transition-colors cursor-pointer"
+                    title="Access Admin Console"
                   >
-                    <Shield size={18} className="sm:w-5 sm:h-5" />
+                    <Shield size={18} className="text-slate-900" />
+                    <span className="font-heading font-black text-xs sm:text-sm text-slate-900">Admin</span>
                   </motion.button>
                 </Link>
               )}
               <div className="flex items-center gap-1.5 sm:gap-2.5">
                 <div 
-                  className="w-8 h-8 sm:w-10 sm:h-10 bg-pastel-mint rounded-full border-2 border-slate-700 flex items-center justify-center font-black text-xs sm:text-sm text-slate-800 shadow-sm"
-                  title={user?.username || "User"}
+                  className="w-8 h-8 sm:w-10 sm:h-10 bg-pastel-mint rounded-full border-cartoon flex items-center justify-center font-black text-xs sm:text-sm text-slate-900 shadow-neubrutalism-sm"
+                  title={`Logged in as ${user?.username || "User"}`}
                 >
                   {user?.username?.charAt(0).toUpperCase() || "U"}
                 </div>
@@ -98,24 +96,25 @@ export default function Layout() {
                   whileHover={{ scale: 1.05, rotate: -5 }}
                   whileTap={{ scale: 0.95 }}
                   onClick={() => setIsSettingsOpen(true)}
-                  className="p-1.5 sm:p-2 bg-slate-100 rounded-xl border-2 border-slate-700 shadow-neubrutalism-sm text-slate-800 flex items-center justify-center hover:bg-slate-200 transition-colors"
+                  className="p-1.5 sm:p-2 bg-slate-100 rounded-xl border-cartoon shadow-neubrutalism-sm text-slate-900 flex items-center justify-center hover:bg-slate-200 transition-colors cursor-pointer"
                   title="Settings"
                 >
-                  <Settings size={18} className="sm:w-5 sm:h-5" />
+                  <Settings size={18} className="text-slate-900" />
                 </motion.button>
                 <motion.button
-                  whileHover={{ scale: 1.05, rotate: 5 }}
+                  whileHover={{ scale: 1.05, rotate: 3 }}
                   whileTap={{ scale: 0.95 }}
                   onClick={handleLogout}
-                  className="p-1.5 sm:p-2 bg-pastel-peach rounded-xl border-2 border-slate-700 shadow-neubrutalism-sm text-slate-800 flex items-center justify-center hover:bg-red-200 transition-colors"
-                  title="Logout"
+                  className="px-2.5 py-1.5 sm:px-3 sm:py-2 bg-pastel-peach rounded-xl border-cartoon shadow-neubrutalism-sm text-slate-900 flex items-center gap-1.5 hover:bg-pink-300 transition-colors cursor-pointer"
+                  title="Logout from Puchooo.AI"
                 >
-                  <LogOut size={18} className="sm:w-5 sm:h-5" />
+                  <LogOut size={18} className="text-slate-900" />
+                  <span className="font-heading font-black text-xs sm:text-sm text-slate-900">Logout</span>
                 </motion.button>
               </div>
             </div>
           )}
-        </motion.nav>
+        </nav>
       </header>
 
       <main className="flex-grow w-full relative z-10 flex flex-col">
