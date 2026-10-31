@@ -188,6 +188,7 @@ prompt1.py
 
 Frontend_Prompt.md
 
-docs
+# !docs/*.md
 .claude
 CODER KA ADDA
+docs
