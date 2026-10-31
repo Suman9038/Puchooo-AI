@@ -21,9 +21,10 @@ class GetEmbeddingModels:
             "FASTEMBED_MODEL",
             "sentence-transformers/paraphrase-multilingual-mpnet-base-v2"
         )
+        resolved_cache = os.getenv("FASTEMBED_CACHE_PATH") or os.getenv("FASTEMBED_CACHE_DIR") or ".embeddings/.cache"
         return FastEmbedEmbeddings(
             model_name=resolved_model,
-            cache_dir=".embeddings/.cache"
+            cache_dir=resolved_cache
         )
 
     @staticmethod

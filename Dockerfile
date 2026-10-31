@@ -40,6 +40,7 @@ WORKDIR /app
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
     MALLOC_TRIM_THRESHOLD_=100000 \
+    FASTEMBED_CACHE_PATH="/app/.fastembed_cache" \
     PATH="/app/.venv/bin:$PATH"
 
 # Install production shared libraries:
@@ -55,8 +56,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Copy isolated virtualenv from builder
 COPY --from=builder /app/.venv /app/.venv
 
-# Pre-cache FastEmbed multilingual model so runtime startup is instantaneous (<1s)
-RUN python -c "from fastembed import TextEmbedding; TextEmbedding('sentence-transformers/paraphrase-multilingual-mpnet-base-v2')"
+# Pre-cache FastEmbed multilingual model so runtime startup is instantaneous (<1s) and requires 0 network
+RUN python -c "from fastembed import TextEmbedding; TextEmbedding('sentence-transformers/paraphrase-multilingual-mpnet-base-v2', cache_dir='/app/.fastembed_cache')"
 
 # Copy application source code
 COPY . .
