@@ -56,6 +56,14 @@ class QdrantService:
                 check_compatibility=False
             )
 
+        self._embedding = None
+        self._vector_store = None
+        self.collection_name = settings.QDRANT_COLLECTION
+
+        self.create_collection()
+        self._initialized = True
+
+    def _load_embedding(self):
         # Embedding Provider selection:
         # Detect cloud environment (Render sets RENDER=true or PORT)
         is_cloud = bool(os.getenv("RENDER") or os.getenv("PORT"))
@@ -67,37 +75,50 @@ class QdrantService:
 
         if emb_provider == "fastembed":
             logger.info("Using FastEmbed Multilingual In-Process Embeddings (768-dim, 100% free, 0 rate limits)")
-            self.embedding = GetEmbeddingModels.get_fastembed_models()
+            return GetEmbeddingModels.get_fastembed_models()
         elif emb_provider == "ollama":
             # If running in cloud container, Ollama on localhost/127.0.0.1 is unreachable
             ollama_url = os.getenv("OLLAMA_BASE_URL", "")
             is_local_ollama = not ollama_url or "localhost" in ollama_url or "127.0.0.1" in ollama_url
             if is_cloud and is_local_ollama:
                 logger.warning("Cloud environment detected where local Ollama is unreachable. Automatically using FastEmbed Multilingual.")
-                self.embedding = GetEmbeddingModels.get_fastembed_models()
+                return GetEmbeddingModels.get_fastembed_models()
             else:
                 logger.info("Using Local Ollama embeddings (embeddinggemma:300m) - 100% free with no rate limits")
-                self.embedding = GetEmbeddingModels.get_ollama_embedding_models()
+                return GetEmbeddingModels.get_ollama_embedding_models()
         elif emb_provider == "google":
             logger.info("Using Google Generative AI embeddings (gemini-embedding-001)")
-            self.embedding = GetEmbeddingModels.get_google_embedding_models()
+            return GetEmbeddingModels.get_google_embedding_models()
         elif emb_provider == "hf":
             logger.info("Using HuggingFace embeddings")
-            self.embedding = GetEmbeddingModels.get_hf_embedding_models()
+            return GetEmbeddingModels.get_hf_embedding_models()
         else:
             logger.info("Using FastEmbed Multilingual In-Process Embeddings (768-dim)")
-            self.embedding = GetEmbeddingModels.get_fastembed_models()
+            return GetEmbeddingModels.get_fastembed_models()
 
-        self.collection_name = settings.QDRANT_COLLECTION
+    @property
+    def embedding(self):
+        if self._embedding is None:
+            self._embedding = self._load_embedding()
+        return self._embedding
 
-        self.create_collection()
+    @embedding.setter
+    def embedding(self, val):
+        self._embedding = val
 
-        self.vector_store = QdrantVectorStore(
-            client=self.client,
-            collection_name=self.collection_name,
-            embedding=self.embedding
-        )
-        self._initialized = True
+    @property
+    def vector_store(self):
+        if self._vector_store is None:
+            self._vector_store = QdrantVectorStore(
+                client=self.client,
+                collection_name=self.collection_name,
+                embedding=self.embedding
+            )
+        return self._vector_store
+
+    @vector_store.setter
+    def vector_store(self, val):
+        self._vector_store = val
 
     def create_collection(self):
         if QdrantService._collection_checked:
