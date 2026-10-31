@@ -28,7 +28,14 @@ def get_redis_url() -> str:
     return url
 
 redis_url = get_redis_url()
-redis_client = redis.from_url(redis_url, decode_responses=True)
+redis_client = redis.from_url(
+    redis_url,
+    decode_responses=True,
+    socket_timeout=10.0,
+    socket_connect_timeout=10.0,
+    retry_on_timeout=True,
+    health_check_interval=30,
+)
 
 
 async def add_token_jti_to_blocklist(jwt_id:str):

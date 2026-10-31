@@ -28,6 +28,11 @@ class VideoIndexingService:
 
             # 2. Get the transcript from the Youtube API
             transcript = self.transcript_service.fetch_transcription(video_id=video.youtube_video_id)
+            if not transcript or not transcript.segments:
+                raise ValueError(
+                    f"Could not retrieve transcript for video {video.youtube_video_id}. "
+                    "YouTube blocked the request from this cloud server (IP ban), or the video has captions disabled."
+                )
 
             # 3. Chunking
             chunks = self.chunker.chunk_transcript(transcript)
