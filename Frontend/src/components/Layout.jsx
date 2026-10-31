@@ -49,63 +49,76 @@ export default function Layout() {
 
   return (
     <div className="min-h-[100dvh] flex flex-col relative">
-      {/* Floating Navbar */}
-      <motion.nav 
-        initial={{ y: -100 }}
-        animate={{ y: 0 }}
-        transition={{ type: "spring", stiffness: 100, damping: 20 }}
-        className={cn(
-          "fixed left-1/2 -translate-x-1/2 z-50 flex items-center justify-between bg-white/70 backdrop-blur-md border-cartoon shadow-neubrutalism-sm",
-          isExtension ? "top-2 w-[95%] p-2 rounded-2xl" : "top-2 sm:top-4 w-[96%] sm:w-11/12 max-w-4xl p-2.5 sm:p-4 rounded-2xl sm:rounded-3xl"
-        )}
-      >
-        <Link to="/dashboard" className="flex items-center">
-          <img src={logo} alt="Puchooo.AI Logo" className="h-9 sm:h-12 w-auto object-contain drop-shadow-sm transition-transform hover:scale-105" />
-        </Link>
+      {/* Floating Navbar Container */}
+      <header className="fixed top-2 sm:top-4 inset-x-0 z-50 flex justify-center pointer-events-none px-2 sm:px-4">
+        <motion.nav 
+          initial={{ y: -20, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ duration: 0.3, ease: "easeOut" }}
+          className={cn(
+            "pointer-events-auto flex items-center justify-between bg-white/90 backdrop-blur-md border-cartoon shadow-neubrutalism-sm transition-all",
+            isExtension 
+              ? "w-full max-w-md p-2 rounded-2xl" 
+              : "w-full max-w-4xl px-3 py-2 sm:px-5 sm:py-3 rounded-2xl sm:rounded-3xl"
+          )}
+        >
+          <Link to="/dashboard" className="flex items-center gap-2 shrink-0 group">
+            <img 
+              src={logo} 
+              alt="Puchooo.AI Logo" 
+              className="h-8 sm:h-10 w-auto object-contain drop-shadow-sm transition-transform group-hover:scale-105" 
+            />
+            <span className="font-heading font-black text-lg sm:text-2xl text-slate-900 tracking-tight">
+              Puchooo<span className="text-purple-600">.AI</span>
+            </span>
+          </Link>
 
-        {isAuthenticated && (
-          <div className="flex items-center gap-4">
-            {user?.role === "admin" && (
-              <Link to="/admin">
-                <motion.button 
+          {isAuthenticated && (
+            <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
+              {user?.role === "admin" && (
+                <Link to="/admin">
+                  <motion.button 
+                    whileHover={{ scale: 1.05, rotate: -5 }}
+                    whileTap={{ scale: 0.95 }}
+                    className="p-1.5 sm:p-2 bg-pastel-blue rounded-xl border-2 border-slate-700 shadow-neubrutalism-sm text-slate-800 flex items-center justify-center hover:bg-blue-200 transition-colors"
+                    title="Admin Panel"
+                  >
+                    <Shield size={18} className="sm:w-5 sm:h-5" />
+                  </motion.button>
+                </Link>
+              )}
+              <div className="flex items-center gap-1.5 sm:gap-2.5">
+                <div 
+                  className="w-8 h-8 sm:w-10 sm:h-10 bg-pastel-mint rounded-full border-2 border-slate-700 flex items-center justify-center font-black text-xs sm:text-sm text-slate-800 shadow-sm"
+                  title={user?.username || "User"}
+                >
+                  {user?.username?.charAt(0).toUpperCase() || "U"}
+                </div>
+                <motion.button
                   whileHover={{ scale: 1.05, rotate: -5 }}
                   whileTap={{ scale: 0.95 }}
-                  className="p-2 bg-pastel-blue rounded-xl border-2 border-slate-700 shadow-neubrutalism-sm text-slate-800 flex items-center justify-center hover:bg-blue-200 transition-colors"
-                  title="Admin Panel"
+                  onClick={() => setIsSettingsOpen(true)}
+                  className="p-1.5 sm:p-2 bg-slate-100 rounded-xl border-2 border-slate-700 shadow-neubrutalism-sm text-slate-800 flex items-center justify-center hover:bg-slate-200 transition-colors"
+                  title="Settings"
                 >
-                  <Shield size={20} />
+                  <Settings size={18} className="sm:w-5 sm:h-5" />
                 </motion.button>
-              </Link>
-            )}
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-pastel-mint rounded-full border-2 border-slate-700 flex items-center justify-center font-bold text-slate-800 shadow-sm">
-                {user?.username?.charAt(0).toUpperCase() || "U"}
+                <motion.button
+                  whileHover={{ scale: 1.05, rotate: 5 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={handleLogout}
+                  className="p-1.5 sm:p-2 bg-pastel-peach rounded-xl border-2 border-slate-700 shadow-neubrutalism-sm text-slate-800 flex items-center justify-center hover:bg-red-200 transition-colors"
+                  title="Logout"
+                >
+                  <LogOut size={18} className="sm:w-5 sm:h-5" />
+                </motion.button>
               </div>
-              <motion.button
-                whileHover={{ scale: 1.05, rotate: -5 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={() => setIsSettingsOpen(true)}
-                className="p-2 bg-slate-100 rounded-xl border-2 border-slate-700 shadow-neubrutalism-sm text-slate-800 flex items-center justify-center hover:bg-slate-200 transition-colors"
-              >
-                <Settings size={20} />
-              </motion.button>
-              <motion.button
-                whileHover={{ scale: 1.05, rotate: 5 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={handleLogout}
-                className="p-2 bg-pastel-peach rounded-xl border-2 border-slate-700 shadow-neubrutalism-sm text-slate-800 flex items-center justify-center hover:bg-red-200 transition-colors"
-              >
-                <LogOut size={20} />
-              </motion.button>
             </div>
-          </div>
-        )}
-      </motion.nav>
+          )}
+        </motion.nav>
+      </header>
 
-      <main className={cn(
-        "flex-grow relative z-10 mx-auto w-full",
-        isExtension ? "pt-16 pb-2 px-2" : "pt-16 sm:pt-24 lg:pt-28 pb-1 sm:pb-8 lg:pb-12 px-1.5 sm:px-4 md:px-8 max-w-7xl"
-      )}>
+      <main className="flex-grow w-full relative z-10 flex flex-col">
         <Outlet />
       </main>
 

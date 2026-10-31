@@ -172,6 +172,14 @@ export default function AuthPage() {
               </div>
             ) : (
               <>
+                {/* Mobile-only Logo & Brand */}
+                <div className="md:hidden flex items-center justify-center gap-2 mb-6">
+                  <img src={logo} alt="Puchooo.AI Logo" className="h-9 w-auto object-contain drop-shadow-sm" />
+                  <span className="font-heading font-black text-2xl text-slate-900 tracking-tight">
+                    Puchooo<span className="text-purple-600">.AI</span>
+                  </span>
+                </div>
+
                 <motion.div layout className="mb-8 text-center">
                   <h2 className="text-3xl font-heading text-slate-800 mb-2">
                 {isLogin ? "Welcome Back!" : "Create Account"}

@@ -6,7 +6,7 @@ export function cn(...inputs) {
 }
 
 // Check if running in a Chrome Extension
-export const isExtension = typeof window !== "undefined" && typeof window.chrome !== "undefined" && Boolean(window.chrome?.runtime?.id);
+export const isExtension = typeof window !== "undefined" && window.location.protocol === "chrome-extension:";
 
 /**
  * Formats seconds into MM:SS or HH:MM:SS

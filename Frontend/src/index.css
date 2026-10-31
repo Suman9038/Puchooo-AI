@@ -145,8 +145,8 @@
 
   /* Dashboard Empty State */
   .empty-state-card {
-    grid-column: span-full;
-    padding: 3rem;
+    grid-column: 1 / -1;
+    padding: 3rem 1.5rem;
     background: #fde047;
     border: 3px solid #000;
     border-radius: 1.5rem;
@@ -154,9 +154,14 @@
     color: #0f172a;
     font-weight: 900;
     font-size: 1.25rem;
-    box-shadow: 2px 2px 0px 0px rgba(0,0,0,1);
+    box-shadow: var(--shadow-neubrutalism);
     transition: all 0.2s ease;
     cursor: default;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
   }
 
   .empty-state-card:hover {

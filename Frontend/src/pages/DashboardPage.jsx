@@ -124,7 +124,7 @@ export default function DashboardPage() {
   const showSkeleton = isFetchingVideos && !hasVideos;
 
   return (
-    <div className="w-full flex flex-col gap-12 relative min-h-screen bg-pastel-blue">
+    <div className="w-full flex-grow flex flex-col relative min-h-screen bg-pastel-blue">
       
       {/* Background Cartoon Polka Dots */}
       <div 
@@ -143,22 +143,22 @@ export default function DashboardPage() {
         />
       </div>
 
-      <div className="relative z-10 w-full flex flex-col gap-12 p-4">
+      <div className="relative z-10 w-full max-w-5xl mx-auto flex flex-col gap-8 sm:gap-12 px-3 sm:px-6 pt-20 sm:pt-28 pb-12">
         {/* Header Section */}
         <motion.div 
-          initial={{ opacity: 0, y: 20, rotate: -5 }}
-          animate={{ opacity: 1, y: 0, rotate: -2 }}
+          initial={{ opacity: 0, y: 20, rotate: -3 }}
+          animate={{ opacity: 1, y: 0, rotate: -1.5 }}
           transition={springBounce}
-          className="flex flex-col items-center text-center mt-12 transform -rotate-2"
+          className="flex flex-col items-center text-center mt-2 sm:mt-4 transform -rotate-1"
         >
-          <div className="inline-flex items-center justify-center p-3 px-6 bg-pastel-yellow border-cartoon shadow-neubrutalism-sm rounded-full mb-6">
-             <Sparkles className="text-slate-900 mr-2" size={24}/>
-             <span className="font-black text-slate-900 uppercase tracking-wider">Dashboard</span>
+          <div className="inline-flex items-center justify-center p-2.5 px-5 bg-pastel-yellow border-cartoon shadow-neubrutalism-sm rounded-full mb-4">
+             <Sparkles className="text-slate-900 mr-2" size={20}/>
+             <span className="font-black text-slate-900 uppercase tracking-wider text-sm">Dashboard</span>
           </div>
-          <h1 className="text-4xl sm:text-5xl md:text-6xl font-heading font-black text-slate-900 mb-6 tracking-tight px-2">
+          <h1 className="text-3xl sm:text-5xl md:text-6xl font-heading font-black text-slate-900 mb-4 sm:mb-6 tracking-tight px-2">
             Welcome back, {user?.first_name || user?.username}!
           </h1>
-          <p className="text-base sm:text-xl text-slate-800 font-bold max-w-lg bg-white border-cartoon shadow-neubrutalism-sm rounded-2xl p-4 transform rotate-2 mx-2">
+          <p className="text-base sm:text-xl text-slate-800 font-bold max-w-lg bg-white border-cartoon shadow-neubrutalism-sm rounded-2xl p-3.5 sm:p-4 transform rotate-1 mx-2">
             Ready to dive into a new topic? Drop a YouTube link below and let's start learning.
           </p>
         </motion.div>
@@ -243,14 +243,16 @@ export default function DashboardPage() {
                   </div>
                 ))
               ) : !hasVideos ? (
-                <div className="empty-state-card">
-                  <div className="flex flex-col items-center gap-4">
-                    <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center border-cartoon shadow-neubrutalism-sm">
-                      <PlaySquare size={32} className="text-slate-800" />
-                    </div>
-                    <span>No videos processed yet</span>
-                    <span className="text-sm font-medium">Paste a YouTube link above to get started!</span>
+                <div className="col-span-full w-full py-10 sm:py-14 px-4 sm:px-8 flex flex-col items-center justify-center text-center bg-pastel-yellow border-cartoon shadow-neubrutalism rounded-3xl">
+                  <div className="w-16 h-16 sm:w-20 sm:h-20 bg-white rounded-full flex items-center justify-center border-cartoon shadow-neubrutalism-sm mb-4 transform -rotate-3">
+                    <PlaySquare size={36} className="text-slate-900" />
                   </div>
+                  <h3 className="text-2xl sm:text-3xl font-heading font-black text-slate-900 mb-2 tracking-tight">
+                    No videos processed yet
+                  </h3>
+                  <p className="text-base sm:text-lg font-bold text-slate-700 max-w-md">
+                    Paste a YouTube link above and click <span className="underline decoration-slate-900 decoration-2">Process</span> to start learning!
+                  </p>
                 </div>
               ) : (
                 myVideos.map((video) => {
