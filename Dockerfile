@@ -39,6 +39,7 @@ WORKDIR /app
 
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
+    MALLOC_TRIM_THRESHOLD_=100000 \
     PATH="/app/.venv/bin:$PATH"
 
 # Install production shared libraries:
