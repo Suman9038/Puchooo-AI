@@ -1,3 +1,4 @@
+import os
 from fastapi import FastAPI
 from contextlib import asynccontextmanager
 from app.auth.auth_routes import router as auth_router
@@ -11,12 +12,14 @@ from app.rag_pipeline.vector_store import QdrantService
 from app.core.logger import logger
 
 
-
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     logger.info("Starting Puchooo AI...")
-    qdrant = QdrantService()
-    qdrant.create_collection()
+    is_cloud = bool(os.getenv("RENDER") or os.getenv("PORT"))
+    if not is_cloud:
+        # Local development: keep Qdrant connection pre-check on startup
+        qdrant = QdrantService()
+        qdrant.create_collection()
     yield           
     logger.info("Shutting down Puchooo AI...")                   
     await engine.dispose() 
@@ -41,6 +44,6 @@ app.include_router(admin_router)
 
 @app.get("/")
 def root():
-    return{
-        "message":"Backend is working fine"
+    return {
+        "message": "Backend is working fine"
     }

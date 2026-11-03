@@ -60,8 +60,6 @@ class QdrantService:
         self._embedding = None
         self._vector_store = None
         self.collection_name = settings.QDRANT_COLLECTION
-
-        self.create_collection()
         self._initialized = True
 
     def _load_embedding(self):
@@ -95,6 +93,7 @@ class QdrantService:
     @property
     def vector_store(self):
         if self._vector_store is None:
+            self.create_collection()
             self._vector_store = QdrantVectorStore(
                 client=self.client,
                 collection_name=self.collection_name,
