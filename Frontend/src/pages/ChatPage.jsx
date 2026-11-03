@@ -392,7 +392,7 @@ export default function ChatPage() {
   const { video } = activeConversation;
 
   return (
-    <div className="h-[calc(100dvh-4.75rem)] sm:h-[calc(100dvh-6.5rem)] lg:h-[85vh] w-full flex flex-col lg:flex-row gap-2 lg:gap-6 pb-1 lg:pb-4 px-1 sm:px-2 overflow-hidden">
+    <div className="h-screen w-full flex flex-col lg:flex-row gap-2 lg:gap-6 pt-16 sm:pt-20 pb-2 lg:pb-4 px-2 sm:px-4 overflow-hidden">
       
       {/* Mobile Top Navigation & Tab Switcher Bar */}
       <div className="lg:hidden flex items-center justify-between gap-1.5 p-1 bg-white border-cartoon shadow-neubrutalism-sm rounded-2xl shrink-0">

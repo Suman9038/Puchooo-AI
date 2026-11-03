@@ -103,7 +103,7 @@ export default function AdminPage() {
   }
 
   return (
-    <div className="w-full flex flex-col gap-8">
+    <div className="w-full max-w-7xl mx-auto flex flex-col gap-8 pt-20 sm:pt-24 px-4 sm:px-8 pb-12">
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-200 pb-6">
         <div>
