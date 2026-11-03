@@ -51,6 +51,10 @@ class Settings(BaseSettings):
     # Groq
     GROQ_API_KEY: str
 
+    # YouTube Transcript Proxy
+    ENABLE_TRANSCRIPT_PROXY: bool = False
+    FREE_PROXY_API: str = ""
+
     model_config = SettingsConfigDict(
         env_file=DIR / ".env",
         extra="ignore"

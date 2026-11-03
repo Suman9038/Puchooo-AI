@@ -5,6 +5,7 @@ from youtube_transcript_api import (
     NoTranscriptFound
     )
 from app.core.logger import logger
+from app.rag_pipeline.proxy_manager import proxy_manager
 from app.schemas.transcript_schema import (
     TranscriptResponse,
     TranscriptSegment
@@ -66,19 +67,8 @@ class YoutubeTranscriptService:
             logger.error(f"Error fetching transcription: {e}")
             return None
 
-    def _get_transcript_list(self,video_id:str):
-        transcript_list = self.yt_api.list(
-            video_id
-        )
-
-        transcript_obj = transcript_list.find_transcript(
-            ["en","hi","hi-IN"]
-        )
-
-        transcript_response = transcript_obj.fetch()
-
-        return transcript_response
-
+    def _get_transcript_list(self, video_id: str):
+        return proxy_manager.fetch_transcript(video_id, languages=('en', 'hi', 'hi-IN'))
     def _clean_text(self, text:str):
         return(
             self.CLEANUP_PATTERN.sub("", text).strip()
