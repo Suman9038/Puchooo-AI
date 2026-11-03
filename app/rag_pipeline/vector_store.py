@@ -20,6 +20,7 @@ class QdrantService:
     _collection_checked = False
 
     def __new__(cls, *args, **kwargs):
+        # This helps to create one connnection for qdrant database so there will be no another connection open again and again so it ensure fast connectivity and performance
         if not cls._instance:
             cls._instance = super(QdrantService, cls).__new__(cls)
         return cls._instance
@@ -64,37 +65,22 @@ class QdrantService:
         self._initialized = True
 
     def _load_embedding(self):
-        # Embedding Provider selection:
-        # Detect cloud environment (Render sets RENDER=true or PORT)
+        # Detect cloud vs local environment
         is_cloud = bool(os.getenv("RENDER") or os.getenv("PORT"))
-        
-        # In cloud: default to 'fastembed' (100% free, in-process, multilingual, 768-dim, no API quota)
-        # In local: default to 'ollama' (embeddinggemma:300m)
-        default_provider = "fastembed" if is_cloud else "ollama"
-        emb_provider = os.getenv("EMBEDDING_PROVIDER", default_provider).strip().lower()
+        provider = os.getenv("EMBEDDING_PROVIDER", "hf" if is_cloud else "ollama").strip().lower()
 
-        if emb_provider == "fastembed":
-            logger.info("Using FastEmbed Multilingual In-Process Embeddings (768-dim, 100% free, 0 rate limits)")
-            return GetEmbeddingModels.get_fastembed_models()
-        elif emb_provider == "ollama":
-            # If running in cloud container, Ollama on localhost/127.0.0.1 is unreachable
-            ollama_url = os.getenv("OLLAMA_BASE_URL", "")
-            is_local_ollama = not ollama_url or "localhost" in ollama_url or "127.0.0.1" in ollama_url
-            if is_cloud and is_local_ollama:
-                logger.warning("Cloud environment detected where local Ollama is unreachable. Automatically using FastEmbed Multilingual.")
-                return GetEmbeddingModels.get_fastembed_models()
-            else:
-                logger.info("Using Local Ollama embeddings (embeddinggemma:300m) - 100% free with no rate limits")
-                return GetEmbeddingModels.get_ollama_embedding_models()
-        elif emb_provider == "google":
-            logger.info("Using Google Generative AI embeddings (gemini-embedding-001)")
-            return GetEmbeddingModels.get_google_embedding_models()
-        elif emb_provider == "hf":
-            logger.info("Using HuggingFace embeddings")
+        # In cloud: always use Hugging Face (IBM Granite 97M, 384-dim, ~190MB RAM)
+        if is_cloud or provider in ("hf", "granite"):
+            logger.info("Using HuggingFace Embeddings (IBM Granite 97M, 384-dim)")
             return GetEmbeddingModels.get_hf_embedding_models()
-        else:
-            logger.info("Using FastEmbed Multilingual In-Process Embeddings (768-dim)")
-            return GetEmbeddingModels.get_fastembed_models()
+
+        # In local: default to Ollama (embeddinggemma:300m)
+        if provider == "google":
+            logger.info("Using Google Generative AI embeddings")
+            return GetEmbeddingModels.get_google_embedding_models()
+
+        logger.info("Using Local Ollama embeddings (embeddinggemma:300m)")
+        return GetEmbeddingModels.get_ollama_embedding_models()
 
     @property
     def embedding(self):
@@ -133,14 +119,14 @@ class QdrantService:
                 existing_size = info.config.params.vectors.size
                 if existing_size != settings.EMBEDDING_DIMENSION:
                     logger.warning(
-                        f"⚠️ Dimension mismatch! Collection '{self.collection_name}' has size {existing_size}, "
-                        f"but current settings require {settings.EMBEDDING_DIMENSION}."
+                        f"Dimension mismatch! Collection '{self.collection_name}' has size {existing_size}, "
+                        f"recreating collection with dimension {settings.EMBEDDING_DIMENSION} for seamless migration..."
                     )
+                    self.client.delete_collection(self.collection_name)
                 else:
                     logger.info(f"Collection already exists with matching dimension ({existing_size}).")
-                
-                QdrantService._collection_checked = True
-                return
+                    QdrantService._collection_checked = True
+                    return
 
             logger.info(f"Creating collection '{self.collection_name}' with dimension {settings.EMBEDDING_DIMENSION}...")
             self.client.create_collection(

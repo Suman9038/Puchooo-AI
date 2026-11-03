@@ -15,7 +15,7 @@ class Settings(BaseSettings):
     QDRANT_PORT: int = 6333
     QDRANT_COLLECTION: str = "Puchooo_AI"
     LOCAL_QDRANT_URL: str = "http://localhost:6333"
-    EMBEDDING_DIMENSION: int = 768
+    EMBEDDING_DIMENSION: int = 384
 
     # Redis
     REDIS_HOST: str = "localhost"

@@ -7,11 +7,11 @@ services:
     healthCheckPath: /
     envVars:
       - key: EMBEDDING_PROVIDER
-        value: google
+        value: hf
       - key: QDRANT_COLLECTION
         value: Puchooo_AI
       - key: EMBEDDING_DIMENSION
-        value: "768"
+        value: "384"
       - key: JWT_ALGORITHM
         value: HS256
       - key: ACCESS_TOKEN_EXPIRE_MINUTES

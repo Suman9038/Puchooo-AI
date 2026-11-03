@@ -1,5 +1,5 @@
 from uuid import UUID
-
+from datetime import timezone, datetime
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.logger import logger
@@ -79,8 +79,18 @@ class VideoService:
                 existing_video.status,
             )
 
-            # Trigger indexing again only if previous attempt failed
-            if existing_video.status == VideoStatus.FAILED:
+            # If status is PROCESSING but has been stuck for > 5 minutes, consider it stale (e.g. worker crash) and re-trigger
+            is_stale_processing = False
+            if existing_video.status == VideoStatus.PROCESSING and existing_video.updated_at:
+                now_utc = datetime.now(timezone.utc)
+                updated_utc = existing_video.updated_at
+                if updated_utc.tzinfo is None:
+                    updated_utc = updated_utc.replace(tzinfo=timezone.utc)
+                if (now_utc - updated_utc).total_seconds() > 300:  # 5 minutes
+                    is_stale_processing = True
+
+            # Trigger indexing again only if previous attempt failed or was stale
+            if existing_video.status == VideoStatus.FAILED or is_stale_processing:
 
                 await self.video_repo.update_status(
                     existing_video,
@@ -89,7 +99,7 @@ class VideoService:
                 )
 
                 index_video_task.delay(str(existing_video.id))
-                message = "Video indexing failed previously, retrying now."
+                message = "Video indexing was stuck or failed previously, retrying now."
                 current_status = VideoStatus.PENDING
 
             elif existing_video.status == VideoStatus.PROCESSING or existing_video.status == VideoStatus.PENDING:
