@@ -63,21 +63,20 @@ class QdrantService:
         self._initialized = True
 
     def _load_embedding(self):
-        # Detect cloud vs local environment
-        is_cloud = bool(os.getenv("RENDER") or os.getenv("PORT"))
-        provider = os.getenv("EMBEDDING_PROVIDER", "hf" if is_cloud else "ollama").strip().lower()
+        # Read explicit provider from environment (default to ollama for self-hosted/local, or hf/google as configured)
+        provider = os.getenv("EMBEDDING_PROVIDER", "ollama").strip().lower()
 
-        # In cloud: always use Hugging Face (IBM Granite 97M, 384-dim, ~190MB RAM)
-        if is_cloud or provider in ("hf", "granite"):
+        if provider in ("ollama", "local"):
+            logger.info("Using Local Ollama embeddings (embeddinggemma:300m) - zero rate limits & unlimited chunks")
+            return GetEmbeddingModels.get_ollama_embedding_models()
+        elif provider in ("hf", "granite", "huggingface"):
             logger.info("Using HuggingFace Embeddings (IBM Granite 97M, 384-dim)")
             return GetEmbeddingModels.get_hf_embedding_models()
-
-        # In local: default to Ollama (embeddinggemma:300m)
-        if provider == "google":
+        elif provider == "google":
             logger.info("Using Google Generative AI embeddings")
             return GetEmbeddingModels.get_google_embedding_models()
 
-        logger.info("Using Local Ollama embeddings (embeddinggemma:300m)")
+        logger.info("Using Ollama embeddings as default provider")
         return GetEmbeddingModels.get_ollama_embedding_models()
 
     @property

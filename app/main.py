@@ -15,11 +15,11 @@ from app.core.logger import logger
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     logger.info("Starting Puchooo AI...")
-    is_cloud = bool(os.getenv("RENDER") or os.getenv("PORT"))
-    if not is_cloud:
-        # Local development: keep Qdrant connection pre-check on startup
+    try:
         qdrant = QdrantService()
         qdrant.create_collection()
+    except Exception as e:
+        logger.warning(f"Note on initial Qdrant check during startup: {e}")
     yield           
     logger.info("Shutting down Puchooo AI...")                   
     await engine.dispose() 
