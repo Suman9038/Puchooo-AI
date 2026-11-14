@@ -3,6 +3,7 @@ from dotenv import load_dotenv
 from pathlib import Path
 
 DIR = Path(__file__).resolve().parent.parent.parent
+load_dotenv(DIR / ".env")
 
 
 class Settings(BaseSettings):
@@ -21,6 +22,8 @@ class Settings(BaseSettings):
     REDIS_HOST: str = "localhost"
     REDIS_PORT: int = 6379
     LOCAL_REDIS_URL: str = "redis://localhost:6379/0"
+    REDIS_URL: str = ""
+    UPSTASH_REDIS_URL: str = ""
 
     # JWT 
     JWT_SECRET_KEY: str
