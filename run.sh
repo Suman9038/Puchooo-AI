@@ -69,7 +69,7 @@ start_services() {
     if is_running "$CELERY_PID_FILE"; then
         echo "  Celery worker is already running (PID: $(cat "$CELERY_PID_FILE"))."
     else
-        echo "▶ Starting Celery worker in background..."
+        echo " Starting Celery worker in background..."
         nohup "$CELERY" -A app.worker.celery.celery_app worker --loglevel=info --pool=solo > "$CELERY_LOG" 2>&1 &
         local celery_pid=$!
         echo "$celery_pid" > "$CELERY_PID_FILE"
