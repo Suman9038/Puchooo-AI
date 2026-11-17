@@ -1,21 +1,7 @@
 services:
   # ============================================================================
-  # 1. Ollama Self-Hosted LLM & Embeddings Server
-  # ============================================================================
-  ollama:
-    image: ollama/ollama:latest
-    container_name: puchooo-ollama
-    restart: unless-stopped
-    ports:
-      - "11434:11434"
-    volumes:
-      - ollama_data:/root/.ollama
-    networks:
-      - puchooo-vps-net
-
-  # ============================================================================
-  # 2. Puchooo AI Backend + Celery Worker (Supervisord)
-  # Uses your Cloud Neon DB, Qdrant Cloud, and Upstash Redis
+  # Puchooo AI Backend + Celery Worker (Supervisord)
+  # Uses Native Host Ollama (127.0.0.1:11434) + Cloud Neon, Qdrant, Upstash
   # ============================================================================
   backend:
     build:
@@ -23,40 +9,20 @@ services:
       dockerfile: Dockerfile
     container_name: puchooo-backend
     restart: unless-stopped
-    ports:
-      - "8000:10000"
+    network_mode: host
     env_file:
       - .env
     environment:
-      - PORT=10000
-      - OLLAMA_BASE_URL=http://ollama:11434
-      - OLLAMA_HOST=http://ollama:11434
+      - PORT=8000
+      - OLLAMA_BASE_URL=http://127.0.0.1:11434
+      - OLLAMA_HOST=http://127.0.0.1:11434
       - PRIMARY_LLM=ollama
       - EMBEDDING_PROVIDER=ollama
       - OLLAMA_MODEL=hf.co/unsloth/Qwen3.5-4B-GGUF:Q4_K_M
       - OLLAMA_EMBED_MODEL=embeddinggemma:300m
-    volumes:
-      - hf_cache:/app/.hf_cache
-    depends_on:
-      - ollama
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:10000/"]
+      test: ["CMD", "curl", "-f", "http://127.0.0.1:8000/"]
       interval: 30s
       timeout: 10s
       start_period: 30s
       retries: 3
-    networks:
-      - puchooo-vps-net
-
-# ==============================================================================
-# Persistent Storage & Networks
-# ==============================================================================
-networks:
-  puchooo-vps-net:
-    driver: bridge
-
-volumes:
-  ollama_data:
-    name: puchooo_ollama_data
-  hf_cache:
-    name: puchooo_hf_cache

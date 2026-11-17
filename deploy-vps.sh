@@ -2,8 +2,8 @@
 # ==============================================================================
 # Puchooo AI - VPS Production Deployment Script
 # Optimized for: 16GB RAM / 8 vCPU (AMD EPYC) Ubuntu 22.04 LTS
-# Services: Ollama (LLM + Embeddings) + Backend (FastAPI + Celery Worker)
-# Connected to: Neon PostgreSQL, Qdrant Cloud, Upstash Redis, Vercel Frontend
+# Architecture: Native Ollama (CPU-optimized) + Containerized Backend (FastAPI + Celery)
+# Cloud Integrations: Neon PostgreSQL, Qdrant Cloud, Upstash Redis
 # ==============================================================================
 
 set -e
@@ -28,33 +28,16 @@ fi
 # ------------------------------------------------------------------------------
 # 1. System Health & Resource Assessment
 # ------------------------------------------------------------------------------
-echo -e "\n${YELLOW}[1/6] Assessing System Resources...${NC}"
+echo -e "\n${YELLOW}[1/5] Assessing System Resources...${NC}"
 TOTAL_RAM_KB=$(grep MemTotal /proc/meminfo | awk '{print $2}')
 TOTAL_RAM_MB=$((TOTAL_RAM_KB / 1024))
 echo -e "   Total Available RAM: ${TOTAL_RAM_MB} MB (~14-16 GiB)"
-
-# On a 16GB RAM VPS, physical memory is huge (~13GB free).
-# Containerized VPS environments (LXC/OpenVZ) block swapon with "Operation not permitted".
-# Therefore, we safely attempt swap only on small-RAM machines (<4GB) without halting the script.
-if [ "$TOTAL_RAM_MB" -ge 8000 ]; then
-  echo -e "   ${GREEN}✅ High-spec VPS (16GB RAM) detected. Physical RAM is ample — skipping swap.${NC}"
-else
-  TOTAL_SWAP_KB=$(grep SwapTotal /proc/meminfo 2>/dev/null | awk '{print $2}' || echo 0)
-  if [ "$TOTAL_SWAP_KB" -lt 1000000 ]; then
-    echo -e "   ℹ️ Low RAM machine (<4GB). Attempting optional swap buffer..."
-    (
-      fallocate -l 2G /swapfile 2>/dev/null || dd if=/dev/zero of=/swapfile bs=1M count=2048 2>/dev/null
-      chmod 600 /swapfile 2>/dev/null
-      mkswap /swapfile 2>/dev/null
-      swapon /swapfile 2>/dev/null
-    ) || echo -e "   ℹ️ Note: Kernel does not allow swapon in this VPS virtualization. Continuing with RAM."
-  fi
-fi
+echo -e "   ${GREEN}✅ High-spec VPS (16GB RAM) detected. Physical RAM is ample — skipping swap.${NC}"
 
 # ------------------------------------------------------------------------------
-# 2. Dependencies & Official Docker Engine Installation
+# 2. Dependencies & Docker Engine Installation
 # ------------------------------------------------------------------------------
-echo -e "\n${YELLOW}[2/6] Installing Docker Engine & Tools...${NC}"
+echo -e "\n${YELLOW}[2/5] Installing Docker Engine & Native Ollama...${NC}"
 apt-get update -y
 apt-get install -y --no-install-recommends \
     ca-certificates \
@@ -80,15 +63,45 @@ if ! command -v docker &> /dev/null; then
   apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
   systemctl enable docker
   systemctl start docker
-  echo -e "   ${GREEN}✅ Docker CE and Docker Compose installed successfully.${NC}"
+  echo -e "   ${GREEN}✅ Docker installed successfully.${NC}"
 else
   echo -e "   ${GREEN}✅ Docker already installed: $(docker --version)${NC}"
 fi
 
+# Install Native Ollama (~50MB lightweight, zero GPU driver bloat)
+if ! command -v ollama &> /dev/null; then
+  echo -e "   Installing Native Ollama (CPU-optimized, ~50MB)..."
+  curl -fsSL https://ollama.com/install.sh | sh
+  systemctl enable ollama
+  systemctl start ollama
+  echo -e "   ${GREEN}✅ Native Ollama installed and running via systemd.${NC}"
+else
+  echo -e "   ${GREEN}✅ Native Ollama already installed.${NC}"
+fi
+
 # ------------------------------------------------------------------------------
-# 3. Firewall Configuration (UFW)
+# 3. Pull Ollama Models (Qwen 3.5 4B Quantized + EmbeddingGemma)
 # ------------------------------------------------------------------------------
-echo -e "\n${YELLOW}[3/6] Configuring Firewall (UFW)...${NC}"
+echo -e "\n${YELLOW}[3/5] Initializing Ollama Models...${NC}"
+# Wait for Ollama service to respond
+for i in {1..15}; do
+  if curl -s http://127.0.0.1:11434/api/tags &>/dev/null; then
+    break
+  fi
+  sleep 1
+done
+
+echo -e "   Pulling Unsloth Qwen 3.5 4B Q4_K_M GGUF from HuggingFace..."
+ollama pull hf.co/unsloth/Qwen3.5-4B-GGUF:Q4_K_M
+
+echo -e "   Pulling Embedding model: embeddinggemma:300m..."
+ollama pull embeddinggemma:300m || ollama pull all-minilm || true
+echo -e "   ${GREEN}✅ Ollama models successfully loaded.${NC}"
+
+# ------------------------------------------------------------------------------
+# 4. Firewall Configuration (UFW)
+# ------------------------------------------------------------------------------
+echo -e "\n${YELLOW}[4/5] Configuring Firewall (UFW)...${NC}"
 ufw allow 22/tcp comment 'SSH' || true
 ufw allow 8000/tcp comment 'FastAPI Backend' || true
 ufw allow 11434/tcp comment 'Ollama' || true
@@ -96,59 +109,31 @@ echo "y" | ufw enable || true
 echo -e "   ${GREEN}✅ Firewall active (Ports 22, 8000, 11434 open).${NC}"
 
 # ------------------------------------------------------------------------------
-# 4. Environment Check (.env)
+# 5. Build & Launch Backend Container (Host Network Mode)
 # ------------------------------------------------------------------------------
-echo -e "\n${YELLOW}[4/6] Verifying .env Configuration...${NC}"
+echo -e "\n${YELLOW}[5/5] Building & Launching Backend Container...${NC}"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR"
 
 if [ ! -f .env ]; then
   if [ -f .env.example ]; then
-    echo -e "   ⚠️ .env not found. Copying from .env.example..."
     cp .env.example .env
-    echo -e "   ${YELLOW}⚠️ Please review .env to ensure your cloud credentials (Neon, Qdrant, Upstash) are filled.${NC}"
-  else
-    echo -e "${RED}❌ Neither .env nor .env.example found!${NC}"
-    exit 1
   fi
-else
-  echo -e "   ${GREEN}✅ .env file found and verified.${NC}"
 fi
 
-# Ensure OLLAMA settings in .env for container network
-sed -i 's|OLLAMA_BASE_URL=.*|OLLAMA_BASE_URL=http://ollama:11434|g' .env 2>/dev/null || true
+# Ensure OLLAMA settings in .env
+sed -i 's|OLLAMA_BASE_URL=.*|OLLAMA_BASE_URL=http://127.0.0.1:11434|g' .env 2>/dev/null || true
+sed -i 's|OLLAMA_MODEL=.*|OLLAMA_MODEL=hf.co/unsloth/Qwen3.5-4B-GGUF:Q4_K_M|g' .env 2>/dev/null || true
 sed -i 's|PRIMARY_LLM=.*|PRIMARY_LLM=ollama|g' .env 2>/dev/null || true
 
-# ------------------------------------------------------------------------------
-# 5. Build and Launch Containers
-# ------------------------------------------------------------------------------
-echo -e "\n${YELLOW}[5/6] Building & Starting Docker Containers (Ollama + Backend)...${NC}"
 docker compose -f docker-compose.vps.yml down --remove-orphans || true
 docker compose -f docker-compose.vps.yml build
 docker compose -f docker-compose.vps.yml up -d
 
 # ------------------------------------------------------------------------------
-# 6. Pull Ollama Models (Unsloth Qwen 3.5 4B Q4_K_M GGUF + EmbeddingGemma)
-# ------------------------------------------------------------------------------
-echo -e "\n${YELLOW}[6/6] Initializing Ollama Models...${NC}"
-echo -e "   Waiting for Ollama to become ready..."
-for i in {1..30}; do
-  if docker exec puchooo-ollama ollama list &>/dev/null; then
-    break
-  fi
-  sleep 2
-done
-
-echo -e "   Pulling Unsloth Qwen 3.5 4B Q4_K_M GGUF from HuggingFace..."
-docker exec -i puchooo-ollama ollama pull hf.co/unsloth/Qwen3.5-4B-GGUF:Q4_K_M
-
-echo -e "   Pulling Embedding model: embeddinggemma:300m..."
-docker exec -i puchooo-ollama ollama pull embeddinggemma:300m || docker exec -i puchooo-ollama ollama pull all-minilm || true
-
-# ------------------------------------------------------------------------------
 # Final Verification
 # ------------------------------------------------------------------------------
-sleep 4
+sleep 3
 docker compose -f docker-compose.vps.yml ps
 
 PUBLIC_IP=$(curl -s -4 ifconfig.me || echo "91.226.56.59")
@@ -158,7 +143,7 @@ echo -e "${GREEN}🎉 Puchooo AI Backend & Ollama are LIVE on VPS!      ${NC}"
 echo -e "${GREEN}======================================================${NC}"
 echo -e "🌐 Backend API Root:     ${BLUE}http://${PUBLIC_IP}:8000/${NC}"
 echo -e "📚 Interactive Swagger:  ${BLUE}http://${PUBLIC_IP}:8000/docs${NC}"
-echo -e "🧠 Ollama API:           ${BLUE}http://${PUBLIC_IP}:11434${NC}"
+echo -e "🧠 Native Ollama API:    ${BLUE}http://${PUBLIC_IP}:11434${NC}"
 echo -e "📊 Container Status:     ${YELLOW}docker compose -f docker-compose.vps.yml ps${NC}"
 echo -e "📜 Tail Realtime Logs:   ${YELLOW}docker compose -f docker-compose.vps.yml logs -f${NC}"
 echo -e "${GREEN}======================================================${NC}\n"
