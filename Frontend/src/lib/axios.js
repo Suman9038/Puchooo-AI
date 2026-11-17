@@ -2,11 +2,15 @@ import axios from "axios";
 import { useAuthStore } from "../store/useAuthStore";
 
 const getApiBaseUrl = () => {
-  if (import.meta.env.VITE_API_BASE_URL) {
+  if (import.meta.env.VITE_API_BASE_URL !== undefined && import.meta.env.VITE_API_BASE_URL !== "") {
     return import.meta.env.VITE_API_BASE_URL.replace(/\/$/, "");
   }
   if (typeof window !== "undefined" && window.location.hostname) {
     const hostname = window.location.hostname;
+    // When served via Nginx reverse proxy on standard HTTP/HTTPS ports (80/443), use relative same-origin
+    if (window.location.port === "" || window.location.port === "80" || window.location.port === "443") {
+      return "";
+    }
     if (hostname !== "localhost" && hostname !== "127.0.0.1") {
       return `http://${hostname}:8000`;
     }

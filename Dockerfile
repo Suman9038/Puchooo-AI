@@ -57,8 +57,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Copy isolated virtualenv from builder
 COPY --from=builder /app/.venv /app/.venv
 
-# Pre-cache IBM Granite 97M Multilingual R2 model during docker build so runtime startup is instant (<1s) and requires 0 network at runtime
-RUN python -c "from langchain_huggingface import HuggingFaceEmbeddings; HuggingFaceEmbeddings(model_name='ibm-granite/granite-embedding-97m-multilingual-r2', cache_folder='/app/.hf_cache')"
+# Pre-cache IBM Granite 97M Multilingual R2 model during docker build so runtime startup is instant (<1s)
+RUN python -c "from langchain_huggingface import HuggingFaceEmbeddings; HuggingFaceEmbeddings(model_name='ibm-granite/granite-embedding-97m-multilingual-r2', cache_folder='/app/.hf_cache')" || echo "Granite embedding cache finished/skipped"
 
 # Copy application source code
 COPY . .

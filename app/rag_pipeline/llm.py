@@ -7,6 +7,7 @@ from langchain_core.callbacks import BaseCallbackHandler
 from app.core.config import settings
 from dotenv import load_dotenv
 from functools import lru_cache
+import os
 load_dotenv()
 
 class LLMModels:
@@ -66,8 +67,11 @@ class LLMModels:
     @staticmethod
     @lru_cache(maxsize=1)
     def get_ollama_model():
+        ollama_base_url = os.getenv("OLLAMA_BASE_URL") or os.getenv("OLLAMA_HOST") or "http://localhost:11434"
+        ollama_model = os.getenv("OLLAMA_MODEL", "llama3.2:latest")
         return ChatOllama(
-            model="llama3.2:latest",
+            base_url=ollama_base_url,
+            model=ollama_model,
             temperature=0.7,
             verbose=False
         )
@@ -75,13 +79,21 @@ class LLMModels:
     @staticmethod
     @lru_cache(maxsize=1)
     def get_fallback_router_llm():
-        primary = LLMModels.get_groq_llm()
-
-        fallbacks = [
-            LLMModels.get_google_llm(),
-            LLMModels.get_openrouter_llm(),
-            LLMModels.get_ollama_model(),
-        ]
+        primary_choice = os.getenv("PRIMARY_LLM", "groq").strip().lower()
+        if primary_choice in ("ollama", "local"):
+            primary = LLMModels.get_ollama_model()
+            fallbacks = [
+                LLMModels.get_groq_llm(),
+                LLMModels.get_google_llm(),
+                LLMModels.get_openrouter_llm(),
+            ]
+        else:
+            primary = LLMModels.get_groq_llm()
+            fallbacks = [
+                LLMModels.get_google_llm(),
+                LLMModels.get_openrouter_llm(),
+                LLMModels.get_ollama_model(),
+            ]
         
         return primary.with_fallbacks(fallbacks)
 
