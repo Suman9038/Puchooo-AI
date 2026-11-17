@@ -103,10 +103,11 @@ echo -e "   ${GREEN}✅ Ollama models successfully loaded.${NC}"
 # ------------------------------------------------------------------------------
 echo -e "\n${YELLOW}[4/5] Configuring Firewall (UFW)...${NC}"
 ufw allow 22/tcp comment 'SSH' || true
+ufw allow 80/tcp comment 'Web Frontend' || true
 ufw allow 8000/tcp comment 'FastAPI Backend' || true
 ufw allow 11434/tcp comment 'Ollama' || true
 echo "y" | ufw enable || true
-echo -e "   ${GREEN}✅ Firewall active (Ports 22, 8000, 11434 open).${NC}"
+echo -e "   ${GREEN}✅ Firewall active (Ports 22, 80, 8000, 11434 open).${NC}"
 
 # ------------------------------------------------------------------------------
 # 5. Build & Launch Backend Container (Host Network Mode)
@@ -139,11 +140,12 @@ docker compose -f docker-compose.vps.yml ps
 PUBLIC_IP=$(curl -s -4 ifconfig.me || echo "91.226.56.59")
 
 echo -e "\n${GREEN}======================================================${NC}"
-echo -e "${GREEN}🎉 Puchooo AI Backend & Ollama are LIVE on VPS!      ${NC}"
+echo -e "${GREEN}🎉 Puchooo AI Full Stack is LIVE on VPS!             ${NC}"
 echo -e "${GREEN}======================================================${NC}"
-echo -e "🌐 Backend API Root:     ${BLUE}http://${PUBLIC_IP}:8000/${NC}"
-echo -e "📚 Interactive Swagger:  ${BLUE}http://${PUBLIC_IP}:8000/docs${NC}"
-echo -e "🧠 Native Ollama API:    ${BLUE}http://${PUBLIC_IP}:11434${NC}"
-echo -e "📊 Container Status:     ${YELLOW}docker compose -f docker-compose.vps.yml ps${NC}"
-echo -e "📜 Tail Realtime Logs:   ${YELLOW}docker compose -f docker-compose.vps.yml logs -f${NC}"
+echo -e "🚀 Web App (Frontend UI): ${BLUE}http://${PUBLIC_IP}/${NC}"
+echo -e "🌐 Backend API Root:      ${BLUE}http://${PUBLIC_IP}:8000/${NC}"
+echo -e "📚 Interactive Swagger:   ${BLUE}http://${PUBLIC_IP}:8000/docs${NC}"
+echo -e "🧠 Native Ollama API:     ${BLUE}http://${PUBLIC_IP}:11434${NC}"
+echo -e "📊 Container Status:      ${YELLOW}docker compose -f docker-compose.vps.yml ps${NC}"
+echo -e "📜 Tail Realtime Logs:    ${YELLOW}docker compose -f docker-compose.vps.yml logs -f${NC}"
 echo -e "${GREEN}======================================================${NC}\n"
