@@ -68,7 +68,7 @@ class LLMModels:
     @lru_cache(maxsize=1)
     def get_ollama_model():
         ollama_base_url = os.getenv("OLLAMA_BASE_URL") or os.getenv("OLLAMA_HOST") or "http://localhost:11434"
-        ollama_model = os.getenv("OLLAMA_MODEL", "llama3.2:latest")
+        ollama_model = os.getenv("OLLAMA_MODEL", "hf.co/unsloth/Qwen3.5-4B-GGUF:Q4_K_M")
         return ChatOllama(
             base_url=ollama_base_url,
             model=ollama_model,

@@ -128,7 +128,7 @@ docker compose -f docker-compose.vps.yml build
 docker compose -f docker-compose.vps.yml up -d
 
 # ------------------------------------------------------------------------------
-# 6. Pull Ollama Models (Llama 3.2 + Granite/EmbeddingGemma)
+# 6. Pull Ollama Models (Unsloth Qwen 3.5 4B Q4_K_M GGUF + EmbeddingGemma)
 # ------------------------------------------------------------------------------
 echo -e "\n${YELLOW}[6/6] Initializing Ollama Models...${NC}"
 echo -e "   Waiting for Ollama to become ready..."
@@ -139,8 +139,8 @@ for i in {1..30}; do
   sleep 2
 done
 
-echo -e "   Pulling Llama 3.2 model (takes ~1-2 mins on fast VPS network)..."
-docker exec -i puchooo-ollama ollama pull llama3.2:latest
+echo -e "   Pulling Unsloth Qwen 3.5 4B Q4_K_M GGUF from HuggingFace..."
+docker exec -i puchooo-ollama ollama pull hf.co/unsloth/Qwen3.5-4B-GGUF:Q4_K_M
 
 echo -e "   Pulling Embedding model: embeddinggemma:300m..."
 docker exec -i puchooo-ollama ollama pull embeddinggemma:300m || docker exec -i puchooo-ollama ollama pull all-minilm || true

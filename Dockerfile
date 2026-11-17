@@ -29,7 +29,6 @@ RUN pip install --no-cache-dir "poetry==${POETRY_VERSION}"
 # Install Python dependencies using poetry.lock for exact reproducibility
 COPY pyproject.toml poetry.lock ./
 RUN poetry install --only main --no-root
-RUN .venv/bin/pip install --no-cache-dir sentence-transformers
 
 # ------------------------------------------------------------------------------
 # Stage 2: Minimal Production Runtime
@@ -41,12 +40,11 @@ WORKDIR /app
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
     MALLOC_TRIM_THRESHOLD_=100000 \
-    HF_HOME="/app/.hf_cache" \
     PATH="/app/.venv/bin:$PATH"
 
 # Install production shared libraries:
 # - libpq5: PostgreSQL C client
-# - supervisor: Runs FastAPI + Celery Worker inside a single free container
+# - supervisor: Runs FastAPI + Celery Worker inside a single container
 # - curl: Container healthcheck probes
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libpq5 \
@@ -56,9 +54,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 # Copy isolated virtualenv from builder
 COPY --from=builder /app/.venv /app/.venv
-
-# Pre-cache IBM Granite 97M Multilingual R2 model during docker build so runtime startup is instant (<1s)
-RUN python -c "from langchain_huggingface import HuggingFaceEmbeddings; HuggingFaceEmbeddings(model_name='ibm-granite/granite-embedding-97m-multilingual-r2', cache_folder='/app/.hf_cache')" || echo "Granite embedding cache finished/skipped"
 
 # Copy application source code
 COPY . .

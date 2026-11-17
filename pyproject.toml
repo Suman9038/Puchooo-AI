@@ -52,6 +52,7 @@ package-mode = false
 [tool.poetry.group.dev.dependencies]
 pytest-asyncio = "^1.4.0"
 httpx = "^0.28.1"
+graphifyy = "^0.9.112"
 
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]

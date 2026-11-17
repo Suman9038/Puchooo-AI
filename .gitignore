@@ -192,3 +192,6 @@ Frontend_Prompt.md
 .claude
 CODER KA ADDA
 docs
+
+# Graphify generated knowledge graph artifacts
+graphify-out/
