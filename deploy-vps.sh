@@ -31,24 +31,24 @@ fi
 echo -e "\n${YELLOW}[1/6] Assessing System Resources...${NC}"
 TOTAL_RAM_KB=$(grep MemTotal /proc/meminfo | awk '{print $2}')
 TOTAL_RAM_MB=$((TOTAL_RAM_KB / 1024))
-TOTAL_SWAP_KB=$(grep SwapTotal /proc/meminfo | awk '{print $2}')
 echo -e "   Total Available RAM: ${TOTAL_RAM_MB} MB (~14-16 GiB)"
 
-# Add 4GB swap as a safety buffer
-if [ "$TOTAL_SWAP_KB" -lt 1000000 ]; then
-  echo -e "   ⚠️ No swap detected. Setting up 4GB swap buffer for memory spikes..."
-  if [ ! -f /swapfile ]; then
-    fallocate -l 4G /swapfile || dd if=/dev/zero of=/swapfile bs=1M count=4096
-    chmod 600 /swapfile
-    mkswap /swapfile
-    swapon /swapfile
-    echo '/swapfile none swap sw 0 0' >> /etc/fstab
-    echo -e "   ${GREEN}✅ 4GB swapfile enabled.${NC}"
-  else
-    swapon /swapfile 2>/dev/null || true
-  fi
+# On a 16GB RAM VPS, physical memory is huge (~13GB free).
+# Containerized VPS environments (LXC/OpenVZ) block swapon with "Operation not permitted".
+# Therefore, we safely attempt swap only on small-RAM machines (<4GB) without halting the script.
+if [ "$TOTAL_RAM_MB" -ge 8000 ]; then
+  echo -e "   ${GREEN}✅ High-spec VPS (16GB RAM) detected. Physical RAM is ample — skipping swap.${NC}"
 else
-  echo -e "   ${GREEN}✅ Swap: $((TOTAL_SWAP_KB / 1024)) MB${NC}"
+  TOTAL_SWAP_KB=$(grep SwapTotal /proc/meminfo 2>/dev/null | awk '{print $2}' || echo 0)
+  if [ "$TOTAL_SWAP_KB" -lt 1000000 ]; then
+    echo -e "   ℹ️ Low RAM machine (<4GB). Attempting optional swap buffer..."
+    (
+      fallocate -l 2G /swapfile 2>/dev/null || dd if=/dev/zero of=/swapfile bs=1M count=2048 2>/dev/null
+      chmod 600 /swapfile 2>/dev/null
+      mkswap /swapfile 2>/dev/null
+      swapon /swapfile 2>/dev/null
+    ) || echo -e "   ℹ️ Note: Kernel does not allow swapon in this VPS virtualization. Continuing with RAM."
+  fi
 fi
 
 # ------------------------------------------------------------------------------
