@@ -158,9 +158,9 @@ export const useChatStore = create((set, get) => ({
 
     try {
 
-      const token = useAuthStore.getState().accessToken;
+      let token = useAuthStore.getState().accessToken;
 
-      const response = await fetch(`${api.defaults.baseURL}/chat/conversations/${conversationId}/stream`, {
+      let response = await fetch(`${api.defaults.baseURL}/chat/conversations/${conversationId}/stream`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -168,6 +168,32 @@ export const useChatStore = create((set, get) => ({
         },
         body: JSON.stringify({ question })
       });
+
+      // If access token expired, attempt automatic refresh using refresh token and retry
+      if (response.status === 401) {
+        const refreshToken = useAuthStore.getState().refreshToken;
+        if (refreshToken) {
+          try {
+            const refreshRes = await api.get("/auth/refresh_token", {
+              headers: { Authorization: `Bearer ${refreshToken}` }
+            });
+            token = refreshRes.data.access_token;
+            useAuthStore.getState().setAccessToken(token);
+
+            response = await fetch(`${api.defaults.baseURL}/chat/conversations/${conversationId}/stream`, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${token}`
+              },
+              body: JSON.stringify({ question })
+            });
+          } catch (refErr) {
+            useAuthStore.getState().logout();
+            throw new Error("Session expired. Please log in again.");
+          }
+        }
+      }
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);

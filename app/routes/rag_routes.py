@@ -129,13 +129,23 @@ async def ask_question_stream(
 ):
     """
     Ask a question and receive a Server-Sent Events (SSE) stream for typing effect.
+    Performs pre-stream validation so that any 404, 400, or 403 errors are returned
+    as proper HTTP responses before streaming response headers are committed.
     """
+    _, youtube_video_id, video_title, chat_history = await rag_service.prepare_streaming_context(
+        conversation_id=conversation_id,
+        user_id=current_user.id,
+        question=request.question,
+        db=db
+    )
+
     return StreamingResponse(
-        rag_service.ask_question_streaming(
+        rag_service.stream_rag_response(
             conversation_id=conversation_id,
-            user_id=current_user.id,
             question=request.question,
-            db=db
+            youtube_video_id=youtube_video_id,
+            video_title=video_title,
+            chat_history=chat_history
         ),
         media_type="text/event-stream",
         headers={
