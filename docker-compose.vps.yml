@@ -14,9 +14,11 @@ services:
       - .env
     environment:
       - PORT=8000
+      - APP_ENV=production
+      - PRIMARY_LLM=groq
+      - GROQ_MODEL=llama-3.3-70b-versatile
       - OLLAMA_BASE_URL=http://127.0.0.1:11434
       - OLLAMA_HOST=http://127.0.0.1:11434
-      - PRIMARY_LLM=ollama
       - EMBEDDING_PROVIDER=fastembed
       - FASTEMBED_MODEL=sentence-transformers/paraphrase-multilingual-mpnet-base-v2
       - EMBEDDING_DIMENSION=768
