@@ -188,10 +188,10 @@ prompt1.py
 
 Frontend_Prompt.md
 
-# !docs/*.md
 .claude
 CODER KA ADDA
-docs
+docs/*
+!docs/deployment_guide_hinglish.md
 
 # Graphify generated knowledge graph artifacts
 graphify-out/
