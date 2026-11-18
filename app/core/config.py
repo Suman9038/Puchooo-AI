@@ -33,6 +33,7 @@ class Settings(BaseSettings):
 
     # Email SMTP
     VERIFICATION_URL: str
+    FRONTEND_URL: str = "https://puchoooai.dpdns.org"
     MAIL_USERNAME: str
     MAIL_PASSWORD: str
     MAIL_FROM: str
