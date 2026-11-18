@@ -48,12 +48,14 @@ class QdrantService:
             self.client = QdrantClient(
                 url=qdrant_url,
                 api_key=qdrant_api_key,
+                timeout=60.0,
                 check_compatibility=False
             )
         else:
             self.client = QdrantClient(
                 host=settings.QDRANT_HOST,
                 port=settings.QDRANT_PORT,
+                timeout=60.0,
                 check_compatibility=False
             )
 
@@ -63,21 +65,21 @@ class QdrantService:
         self._initialized = True
 
     def _load_embedding(self):
-        # Read explicit provider from environment (default to ollama for self-hosted/local, or hf/google as configured)
-        provider = os.getenv("EMBEDDING_PROVIDER", "ollama").strip().lower()
+        # Read explicit provider from environment (default to fastembed for fast local ONNX cached inference, or ollama/google as configured)
+        provider = os.getenv("EMBEDDING_PROVIDER", "fastembed").strip().lower()
 
-        if provider in ("ollama", "local"):
+        if provider in ("fastembed", "hf", "granite", "huggingface"):
+            logger.info("Using FastEmbed embeddings (ONNX C++, Zero PyTorch, cached locally on disk)")
+            return GetEmbeddingModels.get_fastembed_models()
+        elif provider in ("ollama", "local"):
             logger.info("Using Local Ollama embeddings (embeddinggemma:300m) - zero rate limits & unlimited chunks")
             return GetEmbeddingModels.get_ollama_embedding_models()
-        elif provider in ("hf", "granite", "huggingface"):
-            logger.info("Using HuggingFace Embeddings (IBM Granite 97M, 384-dim)")
-            return GetEmbeddingModels.get_hf_embedding_models()
         elif provider == "google":
             logger.info("Using Google Generative AI embeddings")
             return GetEmbeddingModels.get_google_embedding_models()
 
-        logger.info("Using Ollama embeddings as default provider")
-        return GetEmbeddingModels.get_ollama_embedding_models()
+        logger.info("Using FastEmbed embeddings as default provider")
+        return GetEmbeddingModels.get_fastembed_models()
 
     @property
     def embedding(self):
@@ -150,7 +152,7 @@ class QdrantService:
         except Exception as e:
             logger.error(f"Failed to check/create Qdrant collection: {e}")
 
-    def add_documents(self, documents, batch_size: int = 32):
+    def add_documents(self, documents, batch_size: int = 16):
         if not documents:
             logger.warning("No documents provided to add to Qdrant.")
             return

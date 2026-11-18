@@ -1,7 +1,7 @@
 services:
   # ============================================================================
   # 1. Puchooo AI Backend + Celery Worker (Supervisord)
-  # Uses Native Host Ollama (127.0.0.1:11434) + Cloud Neon, Qdrant, Upstash
+  # Uses Native Host Ollama for LLM + FastEmbed (ONNX, Zero PyTorch) for Embeddings
   # ============================================================================
   backend:
     build:
@@ -17,9 +17,14 @@ services:
       - OLLAMA_BASE_URL=http://127.0.0.1:11434
       - OLLAMA_HOST=http://127.0.0.1:11434
       - PRIMARY_LLM=ollama
-      - EMBEDDING_PROVIDER=ollama
+      - EMBEDDING_PROVIDER=fastembed
+      - FASTEMBED_MODEL=sentence-transformers/paraphrase-multilingual-mpnet-base-v2
+      - EMBEDDING_DIMENSION=768
+      - EMBEDDING_THREADS=4
+      - FASTEMBED_CACHE_PATH=/app/.embeddings/.cache
       - OLLAMA_MODEL=hf.co/unsloth/Qwen3.5-4B-GGUF:Q4_K_M
-      - OLLAMA_EMBED_MODEL=embeddinggemma:300m
+    volumes:
+      - /root/.cache/embeddings:/app/.embeddings/.cache
     healthcheck:
       test: ["CMD", "curl", "-f", "http://127.0.0.1:8000/"]
       interval: 60s
