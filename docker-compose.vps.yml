@@ -26,17 +26,3 @@ services:
       timeout: 10s
       start_period: 30s
       retries: 3
-
-  # ============================================================================
-  # 2. Puchooo AI Frontend (React SPA + Nginx on Port 80)
-  # Serves the UI on Port 80 and reverse-proxies API calls to 127.0.0.1:8000
-  # ============================================================================
-  frontend:
-    build:
-      context: ./Frontend
-      dockerfile: Dockerfile
-    container_name: puchooo-frontend
-    restart: unless-stopped
-    network_mode: host
-    depends_on:
-      - backend
